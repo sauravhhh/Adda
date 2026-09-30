@@ -72,7 +72,6 @@
         .autherr { color: var(--red); font-size: 13px; min-height: 20px; margin-top: 10px; text-align: center; max-width: 340px; }
         .otptext { text-align: center; color: var(--muted); font-size: 14px; line-height: 1.6; margin-bottom: 2px; }
         .otptext b { color: var(--ink); }
-        #otpCode { text-align: center; font-size: 22px; letter-spacing: 8px; font-weight: 700; }
         .linklike { background: none; border: none; color: var(--saffron); font-size: 14px; font-weight: 700; font-family: inherit; cursor: pointer; padding: 8px; }
         .authnote { margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
 
@@ -302,12 +301,10 @@
             <input id="suPass" type="password" placeholder="Password (6+ characters)" autocomplete="new-password">
             <button class="savebtn" id="suBtn" style="width:100%;margin:6px 0 0;">Create account</button>
         </div>
-        <div class="authform hidden" id="otpForm">
-            <div class="otptext">We sent a 6-digit verification code to<br><b id="otpEmail"></b></div>
-            <input id="otpCode" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••" maxlength="6">
-            <button class="savebtn" id="otpBtn" style="width:100%;margin:6px 0 0;">Verify</button>
-            <button class="linklike" id="otpResend">Didn't get it? Resend code</button>
-            <button class="linklike" id="otpBack" style="color:var(--muted);">← Back to log in</button>
+        <div class="authform hidden" id="checkEmailForm">
+            <div class="otptext">We sent a confirmation link to<br><b id="ceEmail"></b><br><br>Tap the link in your email,<br>then log in here.</div>
+            <button class="savebtn" id="ceLoginBtn" style="width:100%;margin:6px 0 0;">Go to log in</button>
+            <button class="linklike" id="ceResend">Didn't get it? Resend email</button>
         </div>
         <div class="autherr" id="authErr"></div>
         <div class="authnote">Free forever · your data stays yours.<br>Made with ❤️ by sauravhhh</div>
@@ -496,9 +493,9 @@
             // ---------- auth ----------
             var authScreen = document.getElementById('authScreen');
             var appShell = document.getElementById('appShell');
-            var pendingVerify = null; // {email, username, name} while awaiting OTP
+            var pendingEmail = null; // awaiting email confirmation
             function showAuthPane(id) {
-                ['loginForm', 'signupForm', 'otpForm'].forEach(function (f) {
+                ['loginForm', 'signupForm', 'checkEmailForm'].forEach(function (f) {
                     document.getElementById(f).classList.toggle('hidden', f !== id);
                 });
                 document.getElementById('tabLogin').classList.toggle('on', id === 'loginForm');
@@ -506,7 +503,13 @@
             }
             document.getElementById('tabLogin').addEventListener('click', function () { showAuthPane('loginForm'); });
             document.getElementById('tabSignup').addEventListener('click', function () { showAuthPane('signupForm'); });
-            document.getElementById('otpBack').addEventListener('click', function () { pendingVerify = null; showAuthPane('loginForm'); });
+            document.getElementById('ceLoginBtn').addEventListener('click', function () { pendingEmail = null; showAuthPane('loginForm'); });
+            document.getElementById('ceResend').addEventListener('click', async function () {
+                if (!pendingEmail) return;
+                var res = await sb.auth.resend({ type: 'signup', email: pendingEmail });
+                if (res.error) authError(res.error.message);
+                else toast('Confirmation email resent');
+            });
 
             async function ensureProfile(user) {
                 var res = await sb.from('profiles').select('*').eq('id', user.id).single();
@@ -533,39 +536,16 @@
                 if (res.error) {
                     var lm = res.error.message || '';
                     if (/not confirmed/i.test(lm)) {
-                        pendingVerify = { email: email, username: '', name: '' };
-                        showAuthPane('otpForm');
-                        document.getElementById('otpEmail').textContent = email;
-                        authError('Verify your email first — enter the code we sent you.');
+                        pendingEmail = email;
+                        showAuthPane('checkEmailForm');
+                        document.getElementById('ceEmail').textContent = email;
+                        authError('Verify your email first — tap the confirmation link we sent you.');
                         return;
                     }
                     authError(lm); return;
                 }
                 await startApp(res.data.session);
             });
-            // Claim the profile row for a fresh signup: the DB trigger creates it
-            // at signup, so update it (an insert would clash on the primary key).
-            // Falls back to insert when no row exists (re-signup edge cases).
-            async function claimProfile(user, username, name) {
-                var up = await sb.from('profiles').update({
-                    username: username, name: name, bio: '', avatar_url: AV(12)
-                }).eq('id', user.id);
-                if (up.error) {
-                    if (up.error.message.includes('duplicate')) return { taken: true };
-                    return { error: up.error.message };
-                }
-                var sel = await sb.from('profiles').select('id').eq('id', user.id).limit(1);
-                if (!sel.data || !sel.data.length) {
-                    var ins = await sb.from('profiles').insert({
-                        id: user.id, username: username, name: name, bio: '', avatar_url: AV(12)
-                    });
-                    if (ins.error) {
-                        if (ins.error.message.includes('duplicate')) return { taken: true };
-                        return { error: ins.error.message };
-                    }
-                }
-                return { ok: true };
-            }
             document.getElementById('suBtn').addEventListener('click', async function () {
                 var name = document.getElementById('suName').value.trim();
                 var username = document.getElementById('suUser').value.trim().replace(/^@+/, '').replace(/\s+/g, '').toLowerCase();
@@ -582,43 +562,11 @@
                     authError(/database error|duplicate key/i.test(em) ? 'That username is taken — try another.' : em);
                     return;
                 }
-                pendingVerify = { email: email, username: username, name: name };
-                if (res.data.session) {
-                    var cl0 = await claimProfile(res.data.user, username, name);
-                    if (cl0.taken) { await sb.auth.signOut(); authError('That username is taken — try another.'); return; }
-                    if (cl0.error) { await sb.auth.signOut(); authError(cl0.error); return; }
-                    pendingVerify = null;
-                    await startApp(res.data.session);
-                } else {
-                    showAuthPane('otpForm');
-                    document.getElementById('otpEmail').textContent = email;
-                    toast('Verification code sent to your email');
-                }
-            });
-            document.getElementById('otpBtn').addEventListener('click', async function () {
-                var code = document.getElementById('otpCode').value.trim();
-                if (!pendingVerify) { authError('Create an account first, then verify.'); return; }
-                if (code.length < 6) { authError('Enter the 6-digit code from your email.'); return; }
-                this.disabled = true;
-                var res = await sb.auth.verifyOtp({ email: pendingVerify.email, token: code, type: 'signup' });
-                this.disabled = false;
-                if (res.error) { authError(res.error.message); return; }
-                if (pendingVerify.username) {
-                    var cl = await claimProfile(res.data.user, pendingVerify.username, pendingVerify.name);
-                    if (cl.taken) toast('That username was taken — change it in Edit Profile.');
-                    else if (cl.error) { authError(cl.error); return; }
-                } else {
-                    var p = await ensureProfile(res.data.user);
-                    if (!p) return;
-                }
-                pendingVerify = null;
-                await startApp(res.data.session);
-            });
-            document.getElementById('otpResend').addEventListener('click', async function () {
-                if (!pendingVerify) return;
-                var res = await sb.auth.resend({ type: 'signup', email: pendingVerify.email });
-                if (res.error) authError(res.error.message);
-                else toast('Code resent — check your inbox');
+                pendingEmail = email;
+                showAuthPane('checkEmailForm');
+                document.getElementById('ceEmail').textContent = email;
+                if (res.data.session) await startApp(res.data.session);
+                else toast('Confirmation link sent to your email');
             });
             document.getElementById('logoutBtn').addEventListener('click', async function () {
                 await sb.auth.signOut();
