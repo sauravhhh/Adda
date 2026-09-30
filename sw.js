@@ -1,4 +1,4 @@
-const CACHE = 'adda-v1';
+const CACHE = 'adda-v2';
 const ASSETS = [
   './',
   'index.html',
