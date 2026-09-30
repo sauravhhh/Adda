@@ -578,8 +578,8 @@
                 this.disabled = false;
                 if (res.error) {
                     var em = res.error.message || '';
-                    // a duplicate username fails inside the profile trigger as a DB error
-                    authError(/database error/i.test(em) ? 'That username is taken — try another.' : em);
+                    // a duplicate username fails inside the profile trigger as a DB/duplicate-key error
+                    authError(/database error|duplicate key/i.test(em) ? 'That username is taken — try another.' : em);
                     return;
                 }
                 pendingVerify = { email: email, username: username, name: name };
