@@ -181,6 +181,40 @@
         #storyViewer .tapL, #storyViewer .tapR { position: absolute; top: 0; bottom: 0; width: 35%; }
         #storyViewer .tapL { left: 0; } #storyViewer .tapR { right: 0; }
 
+        /* DMs */
+        .overlay { position: fixed; inset: 0; z-index: 40; background: var(--bg); display: flex; flex-direction: column; max-width: 480px; margin: 0 auto; }
+        .dhead { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #fff; border-bottom: 1px solid var(--line); }
+        .dhead .back { background: none; border: none; font-size: 26px; cursor: pointer; padding: 2px 10px 2px 2px; font-family: inherit; color: var(--ink); line-height: 1; }
+        .dhead .dt { font-size: 17px; font-weight: 800; flex: 1; }
+        .dhead img.av { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .dhead .on { font-size: 12px; color: var(--green); font-weight: 600; }
+        .convo { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #fff; border-bottom: 1px solid var(--line); cursor: pointer; }
+        .convo:active { background: #f7f7f7; }
+        .convo img.av { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .convo .cmid { flex: 1; min-width: 0; }
+        .convo .cn { font-size: 15px; font-weight: 700; }
+        .convo .cl { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+        .convo .cl.unread { color: var(--ink); font-weight: 700; }
+        .convo .cright { text-align: right; flex: none; }
+        .convo .ct { font-size: 11px; color: var(--muted); }
+        .convo .ubadge { display: inline-block; min-width: 20px; height: 20px; border-radius: 10px; background: var(--saffron-d); color: #fff; font-size: 12px; font-weight: 800; line-height: 20px; text-align: center; padding: 0 6px; margin-top: 4px; }
+        #chatBody { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 8px; }
+        .msg { max-width: 75%; padding: 10px 13px; border-radius: 18px; font-size: 14px; line-height: 1.45; word-wrap: break-word; }
+        .msg.me { align-self: flex-end; background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff; border-bottom-right-radius: 6px; }
+        .msg.them { align-self: flex-start; background: #fff; border: 1px solid var(--line); border-bottom-left-radius: 6px; }
+        .msg .mn { display: block; font-size: 11px; font-weight: 700; color: var(--saffron-d); margin-bottom: 2px; }
+        .msg .mt { display: block; font-size: 10px; opacity: .7; margin-top: 3px; text-align: right; }
+        .typing { align-self: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 13px 16px; display: flex; gap: 4px; }
+        .typing i { width: 7px; height: 7px; border-radius: 50%; background: #bbb; animation: blink 1s infinite; }
+        .typing i:nth-child(2) { animation-delay: .2s; }
+        .typing i:nth-child(3) { animation-delay: .4s; }
+        @keyframes blink { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
+        .chatinput { display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); }
+        .chatinput input { flex: 1; border: 1px solid var(--line); border-radius: 22px; padding: 11px 16px; font-size: 15px; font-family: inherit; outline: none; background: var(--bg); color: var(--ink); }
+        .chatinput input:focus { border-color: var(--saffron); background: #fff; }
+        .chatinput button { border: none; background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 16px; flex: none; }
+        .chatinput button:active { transform: scale(.92); }
+
         .toast {
             position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(16px);
             background: #1c1c1e; color: #fff; font-size: 14px; font-weight: 600;
@@ -255,6 +289,21 @@
         <nav><div class="row" id="tabbar"></div></nav>
     </div>
 
+    <div id="dmList" class="overlay hidden">
+        <div class="dhead"><button class="back" data-back aria-label="Back">‹</button><div class="dt">Messages</div></div>
+        <div id="convoList" style="overflow-y:auto;flex:1;"></div>
+    </div>
+
+    <div id="dmChat" class="overlay hidden">
+        <div class="dhead">
+            <button class="back" data-back aria-label="Back">‹</button>
+            <img class="av" id="chatAv" src="" alt="">
+            <div style="flex:1;min-width:0;"><div class="dt" id="chatName" style="font-size:16px;"></div><div class="on" id="chatStatus">Active now</div></div>
+        </div>
+        <div id="chatBody"></div>
+        <div class="chatinput"><input id="chatField" placeholder="Message…" maxlength="500" autocomplete="off"><button id="chatSend" aria-label="Send">➤</button></div>
+    </div>
+
     <div id="storyViewer" class="hidden">
         <div class="sbar" id="storySegs"></div>
         <div class="shead">
@@ -309,8 +358,17 @@
                 { av: 15, icon: '🏷️', text: '<b>Aditya Rao</b> mentioned you in a comment', time: '1d' }
             ];
 
+            var SEED_CONVOS = [
+                { id: 'c1', name: 'Priya Sharma', av: 47, online: true, seed: [{ f: 'them', t: 'Kal chai pe milte hai? ☕', time: '10:24' }, { f: 'them', t: 'Woh nayi wali jagah try karte hai', time: '10:25' }] },
+                { id: 'c2', name: 'Rohan Verma', av: 59, online: true, seed: [{ f: 'them', t: 'Bhai match dekha kya?! 🏏', time: '09:12' }] },
+                { id: 'c3', name: 'IPL Gang 🏏', av: 60, online: false, group: ['Rohan', 'Vikram', 'Aditya'], seed: [{ f: 'them', n: 'Vikram', t: 'Sunday ko sab free?', time: 'Yesterday' }] },
+                { id: 'c4', name: 'Sneha Kulkarni', av: 44, online: false, seed: [{ f: 'me', t: 'Pani puri wali photo bhej na 📸', time: 'Yesterday' }, { f: 'them', t: 'Bhejti hu, ekdum kadak aayi hai 😄', time: 'Yesterday' }] }
+            ];
+
+            var REPLIES = ['Haha sahi hai 😄', 'Arre wah! 🔥', 'Kal baat karte hai 👍', 'Bhej raha hu, ek sec', '😂😂😂', 'Done ✅', 'Sahi bol raha hai tu', 'Chal milte hai fir!'];
+
             // ---------- state ----------
-            var store = { liked: [], comments: {}, mine: [], following: [], seenStories: [] };
+            var store = { liked: [], comments: {}, mine: [], following: [], seenStories: [], msgs: {}, unread: { c1: 2, c2: 1 } };
             try {
                 var saved = JSON.parse(localStorage.getItem('adda-v1') || 'null');
                 if (saved) store = Object.assign(store, saved);
@@ -618,7 +676,127 @@
             document.getElementById('tapPrev').addEventListener('click', prevStory);
 
             document.getElementById('searchBtn').addEventListener('click', function () { switchTab('explore'); });
-            document.getElementById('msgBtn').addEventListener('click', function () { toast('Mockup — DMs come with backend'); });
+            document.getElementById('msgBtn').addEventListener('click', openDMList);
+
+            // ---------- DMs ----------
+            var dmListEl = document.getElementById('dmList');
+            var dmChatEl = document.getElementById('dmChat');
+            var chatBody = document.getElementById('chatBody');
+            var chatField = document.getElementById('chatField');
+            var activeConvo = null;
+            var replyTimer = null;
+
+            function nowTime() {
+                var d = new Date();
+                var h = d.getHours(), m = d.getMinutes();
+                return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+            }
+            function convoMsgs(c) {
+                return (c.seed || []).concat(store.msgs[c.id] || []);
+            }
+            function lastMsg(c) {
+                var m = convoMsgs(c);
+                return m.length ? m[m.length - 1] : null;
+            }
+            function totalUnread() {
+                return Object.keys(store.unread).reduce(function (s, k) { return s + (store.unread[k] || 0); }, 0);
+            }
+            function updateMsgDot() {
+                document.querySelector('#msgBtn .dot').style.display = totalUnread() > 0 ? 'block' : 'none';
+            }
+
+            function openDMList() {
+                renderDMList();
+                dmListEl.classList.remove('hidden');
+            }
+            function renderDMList() {
+                var el = document.getElementById('convoList');
+                el.innerHTML = SEED_CONVOS.map(function (c) {
+                    var lm = lastMsg(c);
+                    var u = store.unread[c.id] || 0;
+                    var preview = lm ? (lm.f === 'me' ? 'You: ' : (lm.n ? lm.n + ': ' : '')) + lm.t : 'Say hello 👋';
+                    return '<div class="convo" data-id="' + c.id + '">' +
+                        '<img class="av" src="' + AV(c.av) + '" alt="" loading="lazy">' +
+                        '<div class="cmid"><div class="cn">' + esc(c.name) + '</div>' +
+                        '<div class="cl' + (u ? ' unread' : '') + '">' + esc(preview) + '</div></div>' +
+                        '<div class="cright"><div class="ct">' + esc(lm ? lm.time : '') + '</div>' +
+                        (u ? '<span class="ubadge">' + u + '</span>' : '') + '</div></div>';
+                }).join('');
+                Array.prototype.forEach.call(el.children, function (row) {
+                    row.addEventListener('click', function () { openChat(row.getAttribute('data-id')); });
+                });
+                updateMsgDot();
+            }
+
+            function openChat(id) {
+                activeConvo = SEED_CONVOS.filter(function (c) { return c.id === id; })[0];
+                if (!activeConvo) return;
+                document.getElementById('chatAv').src = AV(activeConvo.av);
+                document.getElementById('chatName').textContent = activeConvo.name;
+                document.getElementById('chatStatus').textContent = activeConvo.group ? activeConvo.group.join(', ') : (activeConvo.online ? 'Active now' : 'Active recently');
+                if (store.unread[id]) { delete store.unread[id]; persist(); }
+                dmListEl.classList.add('hidden');
+                dmChatEl.classList.remove('hidden');
+                renderChat();
+                updateMsgDot();
+            }
+            function renderChat() {
+                chatBody.innerHTML = convoMsgs(activeConvo).map(function (m) {
+                    var cls = m.f === 'me' ? 'me' : 'them';
+                    var name = (m.n && m.f !== 'me') ? '<span class="mn">' + esc(m.n) + '</span>' : '';
+                    return '<div class="msg ' + cls + '">' + name + esc(m.t) + '<span class="mt">' + esc(m.time) + '</span></div>';
+                }).join('');
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+            function sendChat() {
+                var t = chatField.value.trim();
+                if (!t || !activeConvo) return;
+                if (!store.msgs[activeConvo.id]) store.msgs[activeConvo.id] = [];
+                store.msgs[activeConvo.id].push({ f: 'me', t: t, time: nowTime() });
+                persist();
+                chatField.value = '';
+                renderChat();
+                mockReply(activeConvo);
+            }
+            function mockReply(c) {
+                clearTimeout(replyTimer);
+                var typing = document.createElement('div');
+                typing.className = 'typing';
+                typing.innerHTML = '<i></i><i></i><i></i>';
+                replyTimer = setTimeout(function () {
+                    if (!activeConvo || activeConvo.id !== c.id || dmChatEl.classList.contains('hidden')) return;
+                    chatBody.appendChild(typing);
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                    setTimeout(function () {
+                        if (!activeConvo || activeConvo.id !== c.id || dmChatEl.classList.contains('hidden')) { typing.remove(); return; }
+                        typing.remove();
+                        var reply = REPLIES[Math.floor(Math.random() * REPLIES.length)];
+                        var msg = { f: 'them', t: reply, time: nowTime() };
+                        if (c.group) msg.n = c.group[Math.floor(Math.random() * c.group.length)];
+                        if (!store.msgs[c.id]) store.msgs[c.id] = [];
+                        store.msgs[c.id].push(msg);
+                        persist();
+                        renderChat();
+                    }, 1200 + Math.random() * 1200);
+                }, 900);
+            }
+            document.getElementById('chatSend').addEventListener('click', sendChat);
+            chatField.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
+
+            Array.prototype.forEach.call(document.querySelectorAll('[data-back]'), function (b) {
+                b.addEventListener('click', function () {
+                    clearTimeout(replyTimer);
+                    if (!dmChatEl.classList.contains('hidden')) {
+                        // back from a chat -> return to conversation list
+                        dmChatEl.classList.add('hidden');
+                        dmListEl.classList.remove('hidden');
+                        renderDMList();
+                    } else {
+                        dmListEl.classList.add('hidden');
+                    }
+                });
+            });
+            updateMsgDot();
 
             // ---------- init ----------
             renderStories();
