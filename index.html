@@ -212,8 +212,22 @@
         .chatinput { display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); }
         .chatinput input { flex: 1; border: 1px solid var(--line); border-radius: 22px; padding: 11px 16px; font-size: 15px; font-family: inherit; outline: none; background: var(--bg); color: var(--ink); }
         .chatinput input:focus { border-color: var(--saffron); background: #fff; }
-        .chatinput button { border: none; background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 16px; flex: none; }
+        .chatinput button { border: none; background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff; width: 44px; height: 44px; border-radius: 50%; cursor: pointer; font-size: 16px; flex: none; display: flex; align-items: center; justify-content: center; }
         .chatinput button:active { transform: scale(.92); }
+
+        /* Edit profile */
+        .fld { margin: 0 14px 14px; }
+        .fld label { display: block; font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
+        .fld input, .fld textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 15px; font-family: inherit; background: #fff; color: var(--ink); outline: none; box-sizing: border-box; }
+        .fld input:focus, .fld textarea:focus { border-color: var(--saffron); }
+        .fld textarea { resize: vertical; min-height: 76px; }
+        .savebtn { background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff; border: none; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: 800; width: calc(100% - 28px); margin: 6px 14px 20px; cursor: pointer; font-family: inherit; }
+        .savebtn:active { transform: scale(.98); }
+        .avgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px 14px 16px; }
+        .avgrid img { width: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; cursor: pointer; border: 3px solid transparent; background: #eee; }
+        .avgrid img.sel { border-color: var(--saffron); }
+        .epavwrap { text-align: center; padding: 18px 0 8px; }
+        .epav { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background: #eee; }
 
         .toast {
             position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(16px);
@@ -271,10 +285,10 @@
         <section id="tab-profile" class="hidden">
             <div class="pcover"></div>
             <div class="pbody">
-                <img class="pav" src="https://i.pravatar.cc/200?img=12" alt="">
-                <div class="pn">Saurabh Saha</div>
-                <div class="ph">@sauravhhh</div>
-                <div class="pbio">Building apps · Assam, India 🇮🇳<br>Chai enthusiast ☕</div>
+                <img class="pav" id="pfAv" src="https://i.pravatar.cc/200?img=12" alt="">
+                <div class="pn" id="pfName">Saurabh Saha</div>
+                <div class="ph" id="pfHandle">@sauravhhh</div>
+                <div class="pbio" id="pfBio">Building apps · Assam, India 🇮🇳<br>Chai enthusiast ☕</div>
                 <div class="stats">
                     <div class="s"><div class="n" id="statPosts">0</div><div class="l">Posts</div></div>
                     <div class="s"><div class="n">2,418</div><div class="l">Followers</div></div>
@@ -289,6 +303,19 @@
         <nav><div class="row" id="tabbar"></div></nav>
     </div>
 
+    <div id="editProfile" class="overlay hidden">
+        <div class="dhead"><button class="back" data-back aria-label="Back">‹</button><div class="dt">Edit Profile</div></div>
+        <div style="overflow-y:auto;flex:1;">
+            <div class="epavwrap"><img class="epav" id="epAv" src="" alt="Profile photo"></div>
+            <div class="fld"><label>Choose photo</label></div>
+            <div class="avgrid" id="avGrid"></div>
+            <div class="fld"><label>Name</label><input id="epName" maxlength="30" autocomplete="off"></div>
+            <div class="fld"><label>Username</label><input id="epHandle" maxlength="24" autocomplete="off"></div>
+            <div class="fld"><label>Bio</label><textarea id="epBio" maxlength="150"></textarea></div>
+            <button class="savebtn" id="epSave">Save</button>
+        </div>
+    </div>
+
     <div id="dmList" class="overlay hidden">
         <div class="dhead"><button class="back" data-back aria-label="Back">‹</button><div class="dt">Messages</div></div>
         <div id="convoList" style="overflow-y:auto;flex:1;"></div>
@@ -301,7 +328,7 @@
             <div style="flex:1;min-width:0;"><div class="dt" id="chatName" style="font-size:16px;"></div><div class="on" id="chatStatus">Active now</div></div>
         </div>
         <div id="chatBody"></div>
-        <div class="chatinput"><input id="chatField" placeholder="Message…" maxlength="500" autocomplete="off"><button id="chatSend" aria-label="Send">➤</button></div>
+        <div class="chatinput"><input id="chatField" placeholder="Message…" maxlength="500" autocomplete="off"><button id="chatSend" aria-label="Send"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
     </div>
 
     <div id="storyViewer" class="hidden">
@@ -368,7 +395,7 @@
             var REPLIES = ['Haha sahi hai 😄', 'Arre wah! 🔥', 'Kal baat karte hai 👍', 'Bhej raha hu, ek sec', '😂😂😂', 'Done ✅', 'Sahi bol raha hai tu', 'Chal milte hai fir!'];
 
             // ---------- state ----------
-            var store = { liked: [], comments: {}, mine: [], following: [], seenStories: [], msgs: {}, unread: { c1: 2, c2: 1 } };
+            var store = { liked: [], comments: {}, mine: [], following: [], seenStories: [], msgs: {}, unread: { c1: 2, c2: 1 }, profile: null };
             try {
                 var saved = JSON.parse(localStorage.getItem('adda-v1') || 'null');
                 if (saved) store = Object.assign(store, saved);
@@ -429,7 +456,6 @@
                     document.getElementById('tab-' + t.id).classList.toggle('hidden', t.id !== id);
                 });
                 window.scrollTo(0, 0);
-                if (id === 'activity') document.querySelector('#msgBtn .dot').style.display = 'none';
             }
 
             // ---------- stories ----------
@@ -621,8 +647,53 @@
                     ? mine.map(function (p) { return p.img ? '<img src="' + PIC(p.img, 400, 400) + '" alt="" loading="lazy">' : ''; }).join('')
                     : '<div class="mocknote" style="grid-column:1/-1;">No posts yet — tap ＋ to share your first update.</div>';
             }
-            document.getElementById('editProfileBtn').addEventListener('click', function () {
-                toast('Mockup — editing comes with backend');
+            // ---------- edit profile ----------
+            var AVPICK = [12, 32, 5, 68, 25, 52, 15, 44, 33, 59, 22, 47];
+            var epAvNum = 12;
+            var editProfileEl = document.getElementById('editProfile');
+
+            function applyProfile() {
+                var p = store.profile || {};
+                document.getElementById('pfAv').src = p.av ? AV(p.av) : 'https://i.pravatar.cc/200?img=12';
+                document.getElementById('pfName').textContent = p.name || 'Saurabh Saha';
+                document.getElementById('pfHandle').textContent = '@' + (p.handle || 'sauravhhh');
+                document.getElementById('pfBio').innerHTML = esc(p.bio || 'Building apps · Assam, India 🇮🇳\nChai enthusiast ☕').replace(/\n/g, '<br>');
+            }
+            function openEditProfile() {
+                var p = store.profile || {};
+                epAvNum = p.av || 12;
+                document.getElementById('epAv').src = AV(epAvNum);
+                document.getElementById('epName').value = p.name || 'Saurabh Saha';
+                document.getElementById('epHandle').value = p.handle || 'sauravhhh';
+                document.getElementById('epBio').value = p.bio || 'Building apps · Assam, India 🇮🇳\nChai enthusiast ☕';
+                var grid = document.getElementById('avGrid');
+                grid.innerHTML = '';
+                AVPICK.forEach(function (n) {
+                    var img = document.createElement('img');
+                    img.src = AV(n);
+                    img.alt = '';
+                    img.loading = 'lazy';
+                    if (n === epAvNum) img.classList.add('sel');
+                    img.addEventListener('click', function () {
+                        epAvNum = n;
+                        document.getElementById('epAv').src = AV(n);
+                        Array.prototype.forEach.call(grid.children, function (c) { c.classList.remove('sel'); });
+                        img.classList.add('sel');
+                    });
+                    grid.appendChild(img);
+                });
+                editProfileEl.classList.remove('hidden');
+            }
+            document.getElementById('editProfileBtn').addEventListener('click', openEditProfile);
+            document.getElementById('epSave').addEventListener('click', function () {
+                var name = document.getElementById('epName').value.trim() || 'Saurabh Saha';
+                var handle = document.getElementById('epHandle').value.trim().replace(/^@+/, '').replace(/\s+/g, '').toLowerCase() || 'sauravhhh';
+                var bio = document.getElementById('epBio').value.trim();
+                store.profile = { name: name, handle: handle, bio: bio, av: epAvNum };
+                persist();
+                applyProfile();
+                editProfileEl.classList.add('hidden');
+                toast('Profile updated ✅');
             });
 
             // ---------- story viewer ----------
@@ -793,6 +864,7 @@
                         renderDMList();
                     } else {
                         dmListEl.classList.add('hidden');
+                        editProfileEl.classList.add('hidden');
                     }
                 });
             });
@@ -805,6 +877,7 @@
             renderImgPick();
             renderActivity();
             renderProfileGrid();
+            applyProfile();
 
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function () {
