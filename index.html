@@ -532,22 +532,17 @@
                 var res = await sb.auth.signUp({ email: email, password: pass });
                 if (res.error) { this.disabled = false; authError(res.error.message); return; }
                 var user = res.data.user;
-                // claim username first so it is unique
+                // the DB trigger already created a blank profile row — claim it with an
+                // update (an insert would clash on the primary key). The unique
+                // constraint on username still rejects duplicates atomically.
                 if (res.data.session) {
-                    var chk = await sb.from('profiles').select('id').eq('username', username).limit(1);
-                    if (chk.data && chk.data.length) {
-                        await sb.auth.signOut();
-                        this.disabled = false;
-                        authError('That username is taken — try another.');
-                        return;
-                    }
-                    var ins = await sb.from('profiles').insert({
-                        id: user.id, username: username, name: name, bio: '', avatar_url: AV(12)
-                    });
+                    var up = await sb.from('profiles').update({
+                        username: username, name: name, bio: '', avatar_url: AV(12)
+                    }).eq('id', user.id);
                     this.disabled = false;
-                    if (ins.error) {
+                    if (up.error) {
                         await sb.auth.signOut();
-                        authError(ins.error.message.includes('duplicate') ? 'That username is taken — try another.' : ins.error.message);
+                        authError(up.error.message.includes('duplicate') ? 'That username is taken — try another.' : up.error.message);
                         return;
                     }
                     await startApp(res.data.session);
