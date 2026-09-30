@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#f59e0b">
+    <meta name="description" content="Adda — an Indian social media app mockup. UI prototype, no backend. Installable PWA.">
+    <title>Adda — Apna Social Media</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+    <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #fafafa;
+            --card: #ffffff;
+            --ink: #1c1c1e;
+            --muted: #8e8e93;
+            --line: #efefef;
+            --saffron: #f59e0b;
+            --saffron-d: #d97706;
+            --green: #16a34a;
+            --red: #ef4444;
+            --radius: 14px;
+        }
+        html { -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            touch-action: manipulation;
+        }
+        .app { max-width: 480px; margin: 0 auto; min-height: 100vh; background: var(--bg); position: relative; padding-bottom: calc(70px + env(safe-area-inset-bottom)); }
+        .hidden { display: none !important; }
+
+        /* header */
+        header {
+            position: sticky; top: 0; z-index: 20;
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px;
+            background: rgba(255,255,255,.94); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--line);
+        }
+        header img.logo { width: 34px; height: 34px; border-radius: 10px; }
+        header .name { font-size: 21px; font-weight: 800; letter-spacing: -.5px; flex: 1; }
+        header .name span { color: var(--saffron-d); }
+        header .hicon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; position: relative; }
+        header .hicon:active { background: #f0f0f0; }
+        header .hicon .dot { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); border: 2px solid #fff; }
+
+        /* stories */
+        .stories { display: flex; gap: 14px; overflow-x: auto; padding: 14px; background: var(--card); border-bottom: 1px solid var(--line); scrollbar-width: none; }
+        .stories::-webkit-scrollbar { display: none; }
+        .story { flex: none; width: 66px; text-align: center; cursor: pointer; }
+        .story .ring {
+            width: 62px; height: 62px; border-radius: 50%; padding: 3px;
+            background: linear-gradient(45deg, var(--saffron), #ec4899, var(--green));
+            margin: 0 auto 5px;
+        }
+        .story.seen .ring { background: #e5e5e5; }
+        .story img { width: 100%; height: 100%; border-radius: 50%; border: 2.5px solid #fff; object-fit: cover; display: block; background: #eee; }
+        .story .sname { font-size: 11px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* post card */
+        .post { background: var(--card); border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+        .phead { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+        .phead img.av { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .phead .who { flex: 1; min-width: 0; }
+        .phead .who .n { font-size: 14px; font-weight: 700; }
+        .phead .who .t { font-size: 12px; color: var(--muted); }
+        .followbtn {
+            font-size: 13px; font-weight: 700; color: var(--saffron-d); background: none; border: none; cursor: pointer; font-family: inherit; padding: 6px 8px;
+        }
+        .followbtn.following { color: var(--muted); font-weight: 600; }
+        .pimg { width: 100%; aspect-ratio: 1/1; object-fit: cover; background: #f0f0f0; display: block; cursor: pointer; position: relative; }
+        .pimgwrap { position: relative; }
+        .bigheart {
+            position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            pointer-events: none; opacity: 0;
+        }
+        .bigheart svg { width: 90px; height: 90px; filter: drop-shadow(0 4px 12px rgba(0,0,0,.3)); }
+        .bigheart.pop { animation: pop .7s ease forwards; }
+        @keyframes pop { 0% { opacity: 0; transform: scale(.3); } 25% { opacity: 1; transform: scale(1.15); } 60% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1); } }
+        .pactions { display: flex; gap: 4px; padding: 8px 10px 2px; }
+        .pactions button { background: none; border: none; cursor: pointer; padding: 6px; font-family: inherit; }
+        .pactions button:active { transform: scale(.88); }
+        .pactions .spacer { flex: 1; }
+        .plikes { font-size: 14px; font-weight: 700; padding: 2px 14px; }
+        .pcap { font-size: 14px; padding: 2px 14px 4px; line-height: 1.45; }
+        .pcap b { font-weight: 700; }
+        .pcomments { padding: 0 14px 10px; font-size: 13px; color: var(--muted); }
+        .pcomments .c { margin: 3px 0; line-height: 1.4; }
+        .pcomments .c b { color: var(--ink); font-weight: 700; }
+        .viewall { cursor: pointer; font-weight: 600; }
+        .cinput { display: flex; gap: 8px; padding: 8px 14px 12px; }
+        .cinput input {
+            flex: 1; border: 1px solid var(--line); border-radius: 20px; padding: 9px 14px;
+            font-size: 14px; font-family: inherit; outline: none; background: var(--bg);
+        }
+        .cinput input:focus { border-color: var(--saffron); background: #fff; }
+        .cinput button { border: none; background: none; color: var(--saffron-d); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; padding: 0 6px; }
+
+        /* explore */
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; }
+        .grid img { width: 100%; aspect-ratio: 1/1; object-fit: cover; display: block; background: #f0f0f0; cursor: pointer; }
+
+        /* create */
+        .composer { background: var(--card); border-radius: var(--radius); margin: 14px; padding: 14px; border: 1px solid var(--line); }
+        .composer .crow { display: flex; gap: 10px; align-items: flex-start; }
+        .composer img.av { width: 42px; height: 42px; border-radius: 50%; background: #eee; }
+        .composer textarea {
+            flex: 1; border: none; outline: none; resize: none; font-family: inherit; font-size: 16px;
+            min-height: 90px; background: transparent; color: var(--ink);
+        }
+        .imgpick { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 4px; scrollbar-width: none; }
+        .imgpick::-webkit-scrollbar { display: none; }
+        .imgpick img { width: 84px; height: 84px; border-radius: 10px; object-fit: cover; cursor: pointer; border: 3px solid transparent; flex: none; background: #f0f0f0; }
+        .imgpick img.sel { border-color: var(--saffron); }
+        .postbtn {
+            width: 100%; margin-top: 10px; border: none; border-radius: 12px; cursor: pointer;
+            background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff;
+            font-size: 16px; font-weight: 800; padding: 13px; font-family: inherit;
+        }
+        .postbtn:active { transform: scale(.98); }
+        .postbtn:disabled { opacity: .45; }
+
+        /* activity */
+        .notif { display: flex; gap: 12px; align-items: center; background: var(--card); padding: 12px 14px; border-bottom: 1px solid var(--line); }
+        .notif img.av { width: 44px; height: 44px; border-radius: 50%; background: #eee; object-fit: cover; }
+        .notif .txt { flex: 1; font-size: 14px; line-height: 1.4; }
+        .notif .txt .tm { color: var(--muted); font-size: 12px; }
+        .notif .nic { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fef3e2; flex: none; }
+
+        /* profile */
+        .pcover { height: 110px; background: linear-gradient(120deg, #f59e0b, #ec4899 55%, #16a34a); }
+        .pbody { background: var(--card); padding: 0 16px 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+        .pbody img.pav { width: 84px; height: 84px; border-radius: 50%; border: 4px solid #fff; margin-top: -42px; background: #eee; object-fit: cover; }
+        .pbody .pn { font-size: 20px; font-weight: 800; margin-top: 6px; }
+        .pbody .ph { font-size: 14px; color: var(--muted); }
+        .pbody .pbio { font-size: 14px; margin-top: 8px; line-height: 1.5; }
+        .stats { display: flex; gap: 22px; margin: 12px 0; }
+        .stats .s { text-align: left; }
+        .stats .s .n { font-size: 17px; font-weight: 800; }
+        .stats .s .l { font-size: 12px; color: var(--muted); }
+        .editbtn {
+            width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 10px;
+            padding: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; color: var(--ink);
+        }
+        .mocknote { text-align: center; font-size: 11px; color: var(--muted); padding: 14px; line-height: 1.6; }
+
+        /* bottom nav */
+        nav {
+            position: fixed; bottom: 0; left: 0; right: 0; z-index: 30;
+            background: rgba(255,255,255,.96); backdrop-filter: blur(10px);
+            border-top: 1px solid var(--line);
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+        nav .row { max-width: 480px; margin: 0 auto; display: flex; }
+        nav button {
+            flex: 1; background: none; border: none; cursor: pointer; padding: 10px 0 8px;
+            color: var(--muted); font-family: inherit;
+        }
+        nav button.on { color: var(--ink); }
+        nav button svg { width: 25px; height: 25px; display: block; margin: 0 auto; }
+
+        /* story viewer */
+        #storyViewer {
+            position: fixed; inset: 0; z-index: 60; background: #000;
+            display: flex; flex-direction: column;
+        }
+        #storyViewer .sbar { display: flex; gap: 6px; padding: 12px 12px 0; }
+        #storyViewer .sbar .seg { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.3); overflow: hidden; }
+        #storyViewer .sbar .seg i { display: block; height: 100%; width: 0; background: #fff; }
+        #storyViewer .shead { display: flex; align-items: center; gap: 10px; padding: 10px 12px; color: #fff; }
+        #storyViewer .shead img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+        #storyViewer .shead .sn { font-weight: 700; font-size: 14px; flex: 1; }
+        #storyViewer .shead .sx { background: none; border: none; color: #fff; font-size: 22px; cursor: pointer; padding: 6px; }
+        #storyViewer .simg { flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative; }
+        #storyViewer .simg img { width: 100%; height: 100%; object-fit: cover; }
+        #storyViewer .tapL, #storyViewer .tapR { position: absolute; top: 0; bottom: 0; width: 35%; }
+        #storyViewer .tapL { left: 0; } #storyViewer .tapR { right: 0; }
+
+        .toast {
+            position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(16px);
+            background: #1c1c1e; color: #fff; font-size: 14px; font-weight: 600;
+            padding: 11px 20px; border-radius: 24px; opacity: 0; pointer-events: none;
+            transition: opacity .25s, transform .25s; z-index: 70; white-space: nowrap; max-width: 92vw;
+        }
+        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <img class="logo" src="icon-192.png" alt="Adda">
+            <div class="name">Adda<span>.</span></div>
+            <div class="hicon" id="searchBtn" aria-label="Search">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            </div>
+            <div class="hicon" id="msgBtn" aria-label="Messages">
+                <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+                <span class="dot"></span>
+            </div>
+        </header>
+
+        <!-- HOME -->
+        <section id="tab-home">
+            <div class="stories" id="stories"></div>
+            <div id="feed"></div>
+        </section>
+
+        <!-- EXPLORE -->
+        <section id="tab-explore" class="hidden">
+            <div class="grid" id="exploreGrid"></div>
+        </section>
+
+        <!-- CREATE -->
+        <section id="tab-create" class="hidden">
+            <div class="composer">
+                <div class="crow">
+                    <img class="av" src="https://i.pravatar.cc/100?img=12" alt="">
+                    <textarea id="composerText" placeholder="Kya chal raha hai? Share an update…" maxlength="280"></textarea>
+                </div>
+                <div class="imgpick" id="imgPick"></div>
+                <button class="postbtn" id="publishBtn" disabled>Post to Adda</button>
+            </div>
+            <div class="mocknote">Your posts are saved on this device only.<br>No account, no backend — it's a mockup.</div>
+        </section>
+
+        <!-- ACTIVITY -->
+        <section id="tab-activity" class="hidden">
+            <div id="notifList"></div>
+        </section>
+
+        <!-- PROFILE -->
+        <section id="tab-profile" class="hidden">
+            <div class="pcover"></div>
+            <div class="pbody">
+                <img class="pav" src="https://i.pravatar.cc/200?img=12" alt="">
+                <div class="pn">Saurabh Saha</div>
+                <div class="ph">@sauravhhh</div>
+                <div class="pbio">Building apps · Assam, India 🇮🇳<br>Chai enthusiast ☕</div>
+                <div class="stats">
+                    <div class="s"><div class="n" id="statPosts">0</div><div class="l">Posts</div></div>
+                    <div class="s"><div class="n">2,418</div><div class="l">Followers</div></div>
+                    <div class="s"><div class="n">312</div><div class="l">Following</div></div>
+                </div>
+                <button class="editbtn" id="editProfileBtn">Edit profile</button>
+            </div>
+            <div class="grid" id="profileGrid"></div>
+            <div class="mocknote">Adda mockup · UI prototype<br>All data lives on this device only.</div>
+        </section>
+
+        <nav><div class="row" id="tabbar"></div></nav>
+    </div>
+
+    <div id="storyViewer" class="hidden">
+        <div class="sbar" id="storySegs"></div>
+        <div class="shead">
+            <img id="storyAv" src="" alt="">
+            <div class="sn" id="storyName"></div>
+            <button class="sx" id="storyClose">✕</button>
+        </div>
+        <div class="simg">
+            <img id="storyImg" src="" alt="">
+            <div class="tapL" id="tapPrev"></div>
+            <div class="tapR" id="tapNext"></div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        (function () {
+            'use strict';
+
+            var AV = function (n) { return 'https://i.pravatar.cc/100?img=' + n; };
+            var PIC = function (seed, w, h) { return 'https://picsum.photos/seed/' + seed + '/' + (w || 600) + '/' + (h || 600); };
+            var ME = { name: 'Saurabh Saha', handle: 'sauravhhh', avatar: 'https://i.pravatar.cc/100?img=12' };
+
+            var SEED_POSTS = [
+                { id: 'p1', name: 'Priya Sharma', handle: 'priya.sharma', av: 47, time: '12m', img: 'adda-monsoon', likes: 2143, caption: 'Monsoon chai hits different ☕🌧️', comments: [{ n: 'Arjun Mehta', t: 'Adrak wali? 👀' }, { n: 'Priya Sharma', t: 'Always adrak wali 😌' }] },
+                { id: 'p2', name: 'Arjun Mehta', handle: 'arjun.mehta', av: 53, time: '48m', img: 'adda-marine', likes: 1876, caption: 'Sunset at Marine Drive. Mumbai, you beauty 🌅', comments: [{ n: 'Kavya Iyer', t: 'Take me next time!' }] },
+                { id: 'p3', name: 'Rohan Verma', handle: 'rohan.v', av: 59, time: '2h', img: 'adda-cricket', likes: 5231, caption: 'INDIAAA! What a finish! 🏏🇮🇳', comments: [{ n: 'Vikram Singh', t: 'Last over gave me a heart attack 😭' }, { n: 'Rohan Verma', t: 'Same bro same' }] },
+                { id: 'p4', name: 'Sneha Kulkarni', handle: 'sneha.k', av: 44, time: '3h', img: 'adda-panipuri', likes: 3420, caption: 'Pani puri > everything. No debate 🥹', comments: [{ n: 'Ananya Das', t: 'The dahi puri there is unreal' }] },
+                { id: 'p5', name: 'Kavya Iyer', handle: 'kavya.iyer', av: 45, time: '5h', img: 'adda-filter', likes: 1204, caption: 'Madras mornings begin with degree coffee ☕', comments: [] },
+                { id: 'p6', name: 'Vikram Singh', handle: 'vikram.singh', av: 60, time: '8h', img: 'adda-ladakh', likes: 4102, caption: 'Ladakh diaries, day 3 🏔️ Oxygen low, views high', comments: [{ n: 'Aditya Rao', t: 'Adding this to the bucket list' }] },
+                { id: 'p7', name: 'Ananya Das', handle: 'ananya.das', av: 32, time: '11h', img: 'adda-pujo', likes: 2870, caption: 'Pujo asche! Pandal hopping list ready ✨🪔', comments: [{ n: 'Sneha Kulkarni', t: 'College Street first, as always' }] },
+                { id: 'p8', name: 'Aditya Rao', handle: 'aditya.rao', av: 15, time: '1d', img: 'adda-desk', likes: 956, caption: 'Shipping season 💻☕ Late nights, big dreams', comments: [] }
+            ];
+
+            var SEED_STORIES = [
+                { name: 'Priya', av: 47, img: 'adda-monsoon' },
+                { name: 'Arjun', av: 53, img: 'adda-marine' },
+                { name: 'Rohan', av: 59, img: 'adda-cricket' },
+                { name: 'Sneha', av: 44, img: 'adda-panipuri' },
+                { name: 'Kavya', av: 45, img: 'adda-filter' },
+                { name: 'Vikram', av: 60, img: 'adda-ladakh' },
+                { name: 'Ananya', av: 32, img: 'adda-pujo' }
+            ];
+
+            var SEED_NOTIFS = [
+                { av: 47, icon: '❤️', text: '<b>Priya Sharma</b> liked your post', time: '2m' },
+                { av: 59, icon: '👥', text: '<b>Rohan Verma</b> started following you', time: '26m' },
+                { av: 44, icon: '💬', text: '<b>Sneha Kulkarni</b> commented: “Full agree 😄”', time: '1h' },
+                { av: 53, icon: '❤️', text: '<b>Arjun Mehta</b> and <b>214 others</b> liked your photo', time: '3h' },
+                { av: 32, icon: '👥', text: '<b>Ananya Das</b> started following you', time: '6h' },
+                { av: 15, icon: '🏷️', text: '<b>Aditya Rao</b> mentioned you in a comment', time: '1d' }
+            ];
+
+            // ---------- state ----------
+            var store = { liked: [], comments: {}, mine: [], following: [], seenStories: [] };
+            try {
+                var saved = JSON.parse(localStorage.getItem('adda-v1') || 'null');
+                if (saved) store = Object.assign(store, saved);
+            } catch (e) {}
+            function persist() { try { localStorage.setItem('adda-v1', JSON.stringify(store)); } catch (e) {} }
+
+            function allPosts() {
+                return store.mine.concat(SEED_POSTS);
+            }
+            function getComments(p) {
+                var extra = store.comments[p.id] || [];
+                return (p.comments || []).concat(extra);
+            }
+            function likeCount(p) {
+                return p.likes + (store.liked.indexOf(p.id) >= 0 ? 1 : 0);
+            }
+            function fmt(n) {
+                if (n >= 1000) return (n / 1000).toFixed(1).replace('.0', '') + 'k';
+                return '' + n;
+            }
+            function esc(s) {
+                return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+            }
+
+            var toastEl = document.getElementById('toast');
+            function toast(msg) {
+                toastEl.textContent = msg;
+                toastEl.classList.add('show');
+                clearTimeout(toast.t);
+                toast.t = setTimeout(function () { toastEl.classList.remove('show'); }, 1700);
+            }
+
+            // ---------- tabs ----------
+            var TABS = [
+                { id: 'home', svg: '<path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-6h6v6"/>' },
+                { id: 'explore', svg: '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5 13 13l-4.5 2.5L11 11z"/>' },
+                { id: 'create', svg: '<rect x="3" y="3" width="18" height="18" rx="5"/><path d="M12 8v8M8 12h8"/>' },
+                { id: 'activity', svg: '<path d="M12 20.5C7 16.5 3 13.2 3 9.3 3 6.4 5.2 4.5 7.7 4.5c1.7 0 3.3.9 4.3 2.4 1-1.5 2.6-2.4 4.3-2.4 2.5 0 4.7 1.9 4.7 4.8 0 3.9-4 7.2-9 11.2z"/>' },
+                { id: 'profile', svg: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>' }
+            ];
+            var currentTab = 'home';
+            var tabbar = document.getElementById('tabbar');
+            TABS.forEach(function (t) {
+                var b = document.createElement('button');
+                b.setAttribute('data-tab', t.id);
+                b.setAttribute('aria-label', t.id);
+                b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + t.svg + '</svg>';
+                if (t.id === 'home') b.classList.add('on');
+                b.addEventListener('click', function () { switchTab(t.id); });
+                tabbar.appendChild(b);
+            });
+            function switchTab(id) {
+                currentTab = id;
+                Array.prototype.forEach.call(tabbar.children, function (b) {
+                    b.classList.toggle('on', b.getAttribute('data-tab') === id);
+                });
+                TABS.forEach(function (t) {
+                    document.getElementById('tab-' + t.id).classList.toggle('hidden', t.id !== id);
+                });
+                window.scrollTo(0, 0);
+                if (id === 'activity') document.querySelector('#msgBtn .dot').style.display = 'none';
+            }
+
+            // ---------- stories ----------
+            function renderStories() {
+                var el = document.getElementById('stories');
+                var html = '<div class="story" data-story="me"><div class="ring" style="background:#e5e5e5;"><img src="' + ME.avatar + '" alt=""></div><div class="sname">Your story</div></div>';
+                SEED_STORIES.forEach(function (s, i) {
+                    var seen = store.seenStories.indexOf(i) >= 0 ? ' seen' : '';
+                    html += '<div class="story' + seen + '" data-story="' + i + '"><div class="ring"><img src="' + AV(s.av) + '" alt="" loading="lazy"></div><div class="sname">' + esc(s.name) + '</div></div>';
+                });
+                el.innerHTML = html;
+                Array.prototype.forEach.call(el.children, function (c) {
+                    c.addEventListener('click', function () { openStory(c.getAttribute('data-story')); });
+                });
+            }
+
+            // ---------- feed ----------
+            function postHTML(p) {
+                var liked = store.liked.indexOf(p.id) >= 0;
+                var following = store.following.indexOf(p.handle) >= 0;
+                var comments = getComments(p);
+                var shown = comments.slice(-2);
+                var html = '<article class="post" data-id="' + p.id + '">';
+                html += '<div class="phead"><img class="av" src="' + esc(p.avatar || AV(p.av)) + '" alt="" loading="lazy">' +
+                    '<div class="who"><div class="n">' + esc(p.name) + '</div><div class="t">@' + esc(p.handle) + ' · ' + esc(p.time) + '</div></div>' +
+                    (p.mine ? '' : '<button class="followbtn' + (following ? ' following' : '') + '">' + (following ? 'Following' : 'Follow') + '</button>') + '</div>';
+                if (p.img) {
+                    html += '<div class="pimgwrap"><img class="pimg" src="' + PIC(p.img) + '" alt="" loading="lazy">' +
+                        '<div class="bigheart"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 21C7 16.5 3 13.2 3 9.3 3 6.4 5.2 4.5 7.7 4.5c1.7 0 3.3.9 4.3 2.4 1-1.5 2.6-2.4 4.3-2.4 2.5 0 4.7 1.9 4.7 4.8 0 3.9-4 7.2-9 11.2z"/></svg></div></div>';
+                }
+                html += '<div class="pactions">' +
+                    '<button class="likebtn" aria-label="Like"><svg width="26" height="26" viewBox="0 0 24 24" fill="' + (liked ? '#ef4444' : 'none') + '" stroke="' + (liked ? '#ef4444' : 'currentColor') + '" stroke-width="1.8"><path d="M12 20.5C7 16.5 3 13.2 3 9.3 3 6.4 5.2 4.5 7.7 4.5c1.7 0 3.3.9 4.3 2.4 1-1.5 2.6-2.4 4.3-2.4 2.5 0 4.7 1.9 4.7 4.8 0 3.9-4 7.2-9 11.2z"/></svg></button>' +
+                    '<button class="commentbtn" aria-label="Comment"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button>' +
+                    '<button class="sharebtn" aria-label="Share"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>' +
+                    '<span class="spacer"></span></div>';
+                html += '<div class="plikes">' + fmt(likeCount(p)) + ' likes</div>';
+                html += '<div class="pcap"><b>' + esc(p.handle) + '</b> ' + esc(p.caption) + '</div>';
+                html += '<div class="pcomments" data-comments>';
+                if (comments.length > 2) html += '<div class="viewall">View all ' + comments.length + ' comments</div>';
+                shown.forEach(function (c) { html += '<div class="c"><b>' + esc(c.n) + '</b> ' + esc(c.t) + '</div>'; });
+                html += '</div>';
+                html += '<div class="cinput hidden"><input placeholder="Add a comment…" maxlength="140"><button>Post</button></div>';
+                html += '</article>';
+                return html;
+            }
+
+            function renderFeed() {
+                var feed = document.getElementById('feed');
+                feed.innerHTML = allPosts().map(postHTML).join('');
+                Array.prototype.forEach.call(feed.children, function (card) {
+                    var id = card.getAttribute('data-id');
+                    var p = allPosts().filter(function (x) { return x.id === id; })[0];
+                    var likeBtn = card.querySelector('.likebtn');
+                    var pimg = card.querySelector('.pimg');
+                    var heart = card.querySelector('.bigheart');
+
+                    function toggleLike(animate) {
+                        var i = store.liked.indexOf(id);
+                        var svg = likeBtn.querySelector('svg');
+                        if (i >= 0) {
+                            store.liked.splice(i, 1);
+                            svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
+                        } else {
+                            store.liked.push(id);
+                            svg.setAttribute('fill', '#ef4444'); svg.setAttribute('stroke', '#ef4444');
+                            if (animate && heart) {
+                                heart.classList.remove('pop');
+                                void heart.offsetWidth;
+                                heart.classList.add('pop');
+                            }
+                        }
+                        persist();
+                        card.querySelector('.plikes').textContent = fmt(likeCount(p)) + ' likes';
+                    }
+                    likeBtn.addEventListener('click', function () { toggleLike(false); });
+                    if (pimg) {
+                        var lastTap = 0;
+                        pimg.addEventListener('click', function () {
+                            var now = Date.now();
+                            if (now - lastTap < 350 && store.liked.indexOf(id) < 0) toggleLike(true);
+                            lastTap = now;
+                        });
+                    }
+                    var cbtn = card.querySelector('.commentbtn');
+                    var cinput = card.querySelector('.cinput');
+                    var cfield = cinput.querySelector('input');
+                    cbtn.addEventListener('click', function () {
+                        cinput.classList.toggle('hidden');
+                        if (!cinput.classList.contains('hidden')) cfield.focus();
+                    });
+                    var viewAll = card.querySelector('.viewall');
+                    if (viewAll) viewAll.addEventListener('click', function () {
+                        cinput.classList.remove('hidden');
+                        cfield.focus();
+                    });
+                    cinput.querySelector('button').addEventListener('click', function () { addComment(); });
+                    cfield.addEventListener('keydown', function (e) { if (e.key === 'Enter') addComment(); });
+                    function addComment() {
+                        var t = cfield.value.trim();
+                        if (!t) return;
+                        if (!store.comments[id]) store.comments[id] = [];
+                        store.comments[id].push({ n: ME.name, t: t });
+                        persist();
+                        cfield.value = '';
+                        renderFeed();
+                        toast('Comment posted');
+                    }
+                    card.querySelector('.sharebtn').addEventListener('click', function () {
+                        var link = location.origin + location.pathname + '#post-' + id;
+                        if (navigator.clipboard) navigator.clipboard.writeText(link).catch(function () {});
+                        toast('Link copied to clipboard');
+                    });
+                    var fbtn = card.querySelector('.followbtn');
+                    if (fbtn) fbtn.addEventListener('click', function () {
+                        var i = store.following.indexOf(p.handle);
+                        if (i >= 0) { store.following.splice(i, 1); fbtn.textContent = 'Follow'; fbtn.classList.remove('following'); }
+                        else { store.following.push(p.handle); fbtn.textContent = 'Following'; fbtn.classList.add('following'); toast('Following @' + p.handle); }
+                        persist();
+                    });
+                });
+            }
+
+            // ---------- explore ----------
+            function renderExplore() {
+                var seeds = ['adda-monsoon', 'adda-marine', 'adda-cricket', 'adda-panipuri', 'adda-filter', 'adda-ladakh', 'adda-pujo', 'adda-desk', 'adda-chai', 'adda-holi', 'adda-taj', 'adda-auto', 'adda-thali', 'adda-ghat', 'adda-metro', 'adda-mela', 'adda-saree', 'adda-gym'];
+                document.getElementById('exploreGrid').innerHTML = seeds.map(function (s) {
+                    return '<img src="' + PIC(s, 400, 400) + '" alt="" loading="lazy">';
+                }).join('');
+                Array.prototype.forEach.call(document.getElementById('exploreGrid').children, function (im) {
+                    im.addEventListener('click', function () { toast('Mockup — post view coming with backend'); });
+                });
+            }
+
+            // ---------- create ----------
+            var pickedImg = null;
+            function renderImgPick() {
+                var seeds = ['adda-chai', 'adda-holi', 'adda-taj', 'adda-thali', 'adda-ghat', 'adda-mela'];
+                var el = document.getElementById('imgPick');
+                el.innerHTML = seeds.map(function (s) {
+                    return '<img src="' + PIC(s, 200, 200) + '" data-seed="' + s + '" alt="" loading="lazy">';
+                }).join('');
+                Array.prototype.forEach.call(el.children, function (im) {
+                    im.addEventListener('click', function () {
+                        Array.prototype.forEach.call(el.children, function (x) { x.classList.remove('sel'); });
+                        im.classList.add('sel');
+                        pickedImg = im.getAttribute('data-seed');
+                        updatePublishBtn();
+                    });
+                });
+            }
+            var composerText = document.getElementById('composerText');
+            var publishBtn = document.getElementById('publishBtn');
+            function updatePublishBtn() {
+                publishBtn.disabled = composerText.value.trim().length === 0;
+            }
+            composerText.addEventListener('input', updatePublishBtn);
+            publishBtn.addEventListener('click', function () {
+                var t = composerText.value.trim();
+                if (!t) return;
+                store.mine.unshift({
+                    id: 'm' + Date.now(), name: ME.name, handle: ME.handle, avatar: ME.avatar,
+                    time: 'now', img: pickedImg, likes: 0, caption: t, comments: [], mine: true
+                });
+                persist();
+                composerText.value = '';
+                pickedImg = null;
+                Array.prototype.forEach.call(document.getElementById('imgPick').children, function (x) { x.classList.remove('sel'); });
+                updatePublishBtn();
+                renderFeed();
+                renderProfileGrid();
+                switchTab('home');
+                toast('Posted 🎉');
+            });
+
+            // ---------- activity ----------
+            function renderActivity() {
+                document.getElementById('notifList').innerHTML = SEED_NOTIFS.map(function (n) {
+                    return '<div class="notif"><img class="av" src="' + AV(n.av) + '" alt="" loading="lazy">' +
+                        '<div class="txt">' + n.text + '<br><span class="tm">' + n.time + ' ago</span></div>' +
+                        '<div class="nic">' + n.icon + '</div></div>';
+                }).join('');
+            }
+
+            // ---------- profile ----------
+            function renderProfileGrid() {
+                var mine = store.mine;
+                document.getElementById('statPosts').textContent = mine.length;
+                document.getElementById('profileGrid').innerHTML = mine.length
+                    ? mine.map(function (p) { return p.img ? '<img src="' + PIC(p.img, 400, 400) + '" alt="" loading="lazy">' : ''; }).join('')
+                    : '<div class="mocknote" style="grid-column:1/-1;">No posts yet — tap ＋ to share your first update.</div>';
+            }
+            document.getElementById('editProfileBtn').addEventListener('click', function () {
+                toast('Mockup — editing comes with backend');
+            });
+
+            // ---------- story viewer ----------
+            var storyIdx = 0, storyTimer = null, storyProg = null;
+            var viewer = document.getElementById('storyViewer');
+            function openStory(which) {
+                if (which === 'me') { toast('Mockup — camera comes with backend'); return; }
+                storyIdx = parseInt(which, 10);
+                viewer.classList.remove('hidden');
+                showStory();
+            }
+            function showStory() {
+                var s = SEED_STORIES[storyIdx];
+                document.getElementById('storyAv').src = AV(s.av);
+                document.getElementById('storyName').textContent = s.name;
+                document.getElementById('storyImg').src = PIC(s.img, 700, 1100);
+                var segs = document.getElementById('storySegs');
+                segs.innerHTML = SEED_STORIES.map(function (_, i) {
+                    return '<div class="seg"><i style="width:' + (i < storyIdx ? '100' : '0') + '%"></i></div>';
+                }).join('');
+                var bar = segs.children[storyIdx].firstChild;
+                clearTimeout(storyTimer);
+                if (storyProg) cancelAnimationFrame(storyProg);
+                var start = performance.now();
+                (function tick(now) {
+                    var p = Math.min(1, (now - start) / 3500);
+                    bar.style.width = (p * 100) + '%';
+                    if (p < 1) storyProg = requestAnimationFrame(tick);
+                    else nextStory();
+                })(start);
+                if (store.seenStories.indexOf(storyIdx) < 0) {
+                    store.seenStories.push(storyIdx);
+                    persist();
+                    renderStories();
+                }
+            }
+            function nextStory() {
+                if (storyIdx < SEED_STORIES.length - 1) { storyIdx++; showStory(); }
+                else closeStory();
+            }
+            function prevStory() {
+                if (storyIdx > 0) { storyIdx--; showStory(); }
+            }
+            function closeStory() {
+                clearTimeout(storyTimer);
+                if (storyProg) cancelAnimationFrame(storyProg);
+                viewer.classList.add('hidden');
+            }
+            document.getElementById('storyClose').addEventListener('click', closeStory);
+            document.getElementById('tapNext').addEventListener('click', nextStory);
+            document.getElementById('tapPrev').addEventListener('click', prevStory);
+
+            document.getElementById('searchBtn').addEventListener('click', function () { switchTab('explore'); });
+            document.getElementById('msgBtn').addEventListener('click', function () { toast('Mockup — DMs come with backend'); });
+
+            // ---------- init ----------
+            renderStories();
+            renderFeed();
+            renderExplore();
+            renderImgPick();
+            renderActivity();
+            renderProfileGrid();
+
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function () {
+                    navigator.serviceWorker.register('sw.js').catch(function (err) {
+                        console.warn('SW registration failed:', err);
+                    });
+                });
+            }
+        })();
+    </script>
+</body>
+</html>
