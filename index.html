@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="theme-color" content="#f59e0b">
-    <meta name="description" content="Adda — an Indian social media app mockup. UI prototype, no backend. Installable PWA.">
+    <meta name="description" content="Adda — an Indian social media app. Installable PWA.">
     <title>Adda — Apna Social Media</title>
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -48,6 +49,28 @@
         header .hicon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border-radius: 50%; cursor: pointer; position: relative; }
         header .hicon:active { background: #f0f0f0; }
         header .hicon .dot { position: absolute; top: 9px; right: 10px; width: 8px; height: 8px; border-radius: 50%; background: var(--red); border: 2px solid #fff; }
+
+        /* auth */
+        .authwrap {
+            position: fixed; inset: 0; z-index: 80; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 24px; max-width: 480px; margin: 0 auto;
+        }
+        .authlogo { width: 84px; height: 84px; border-radius: 22px; box-shadow: 0 8px 24px rgba(245,158,11,.35); }
+        .authtitle { font-size: 34px; font-weight: 800; letter-spacing: -.5px; margin: 14px 0 4px; }
+        .authtitle span { color: var(--saffron-d); }
+        .authsub { color: var(--muted); font-size: 14px; margin-bottom: 22px; }
+        .authtabs { display: flex; background: #eee; border-radius: 12px; padding: 4px; margin-bottom: 18px; width: 100%; max-width: 340px; }
+        .authtabs button { flex: 1; border: none; background: none; padding: 10px; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; color: var(--muted); }
+        .authtabs button.on { background: #fff; color: var(--ink); box-shadow: 0 1px 4px rgba(0,0,0,.12); }
+        .authform { width: 100%; max-width: 340px; display: flex; flex-direction: column; gap: 10px; }
+        .authform input {
+            border: 1px solid var(--line); border-radius: 12px; padding: 13px 15px;
+            font-size: 16px; font-family: inherit; background: #fff; color: var(--ink); outline: none; width: 100%;
+        }
+        .authform input:focus { border-color: var(--saffron); }
+        .autherr { color: var(--red); font-size: 13px; min-height: 20px; margin-top: 10px; text-align: center; max-width: 340px; }
+        .authnote { margin-top: 18px; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.6; }
 
         /* stories */
         .stories { display: flex; gap: 14px; overflow-x: auto; padding: 14px; background: var(--card); border-bottom: 1px solid var(--line); scrollbar-width: none; }
@@ -100,6 +123,7 @@
         }
         .cinput input:focus { border-color: var(--saffron); background: #fff; }
         .cinput button { border: none; background: none; color: var(--saffron-d); font-weight: 800; font-size: 14px; cursor: pointer; font-family: inherit; padding: 0 6px; }
+        .delbtn { font-size: 12px; color: var(--muted); background: none; border: none; cursor: pointer; font-family: inherit; padding: 6px 8px; }
 
         /* explore */
         .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; padding: 2px; }
@@ -108,7 +132,7 @@
         /* create */
         .composer { background: var(--card); border-radius: var(--radius); margin: 14px; padding: 14px; border: 1px solid var(--line); }
         .composer .crow { display: flex; gap: 10px; align-items: flex-start; }
-        .composer img.av { width: 42px; height: 42px; border-radius: 50%; background: #eee; }
+        .composer img.av { width: 42px; height: 42px; border-radius: 50%; background: #eee; object-fit: cover; }
         .composer textarea {
             flex: 1; border: none; outline: none; resize: none; font-family: inherit; font-size: 16px;
             min-height: 90px; background: transparent; color: var(--ink);
@@ -117,6 +141,15 @@
         .imgpick::-webkit-scrollbar { display: none; }
         .imgpick img { width: 84px; height: 84px; border-radius: 10px; object-fit: cover; cursor: pointer; border: 3px solid transparent; flex: none; background: #f0f0f0; }
         .imgpick img.sel { border-color: var(--saffron); }
+        .uploadtile {
+            width: 84px; height: 84px; border-radius: 10px; flex: none; cursor: pointer;
+            border: 2px dashed #d4d4d8; background: var(--bg); color: var(--muted);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+            font-size: 22px; font-family: inherit; overflow: hidden; position: relative;
+        }
+        .uploadtile span { font-size: 10px; font-weight: 700; }
+        .uploadtile.sel { border-color: var(--saffron); border-style: solid; }
+        .uploadtile img { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; border: none; border-radius: 0; }
         .postbtn {
             width: 100%; margin-top: 10px; border: none; border-radius: 12px; cursor: pointer;
             background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff;
@@ -130,10 +163,10 @@
         .notif img.av { width: 44px; height: 44px; border-radius: 50%; background: #eee; object-fit: cover; }
         .notif .txt { flex: 1; font-size: 14px; line-height: 1.4; }
         .notif .txt .tm { color: var(--muted); font-size: 12px; }
-        .notif .nic { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fef3e2; flex: none; }
+        .notif .nic { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: #fef3e2; flex: none; font-size: 18px; }
 
         /* profile */
-        .pcover { height: 110px; background: linear-gradient(120deg, #f59e0b, #ec4899 55%, #16a34a); }
+        .pcover { height: 110px; background: linear-gradient(120deg, #f59e0b, #ec4899 55%, #7c3aed); }
         .pbody { background: var(--card); padding: 0 16px 14px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
         .pbody img.pav { width: 84px; height: 84px; border-radius: 50%; border: 4px solid #fff; margin-top: -42px; background: #eee; object-fit: cover; }
         .pbody .pn { font-size: 20px; font-weight: 800; margin-top: 6px; }
@@ -146,6 +179,10 @@
         .editbtn {
             width: 100%; border: 1px solid var(--line); background: var(--bg); border-radius: 10px;
             padding: 10px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit; color: var(--ink);
+        }
+        .logoutbtn {
+            width: 100%; border: none; background: none; border-radius: 10px; margin-top: 8px;
+            padding: 10px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: inherit; color: var(--red);
         }
         .mocknote { text-align: center; font-size: 11px; color: var(--muted); padding: 14px; line-height: 1.6; }
 
@@ -188,6 +225,7 @@
         .dhead .dt { font-size: 17px; font-weight: 800; flex: 1; }
         .dhead img.av { width: 38px; height: 38px; border-radius: 50%; object-fit: cover; background: #eee; }
         .dhead .on { font-size: 12px; color: var(--green); font-weight: 600; }
+        .dhead .newchat { background: none; border: none; font-size: 24px; cursor: pointer; color: var(--saffron-d); padding: 4px 6px; font-family: inherit; }
         .convo { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: #fff; border-bottom: 1px solid var(--line); cursor: pointer; }
         .convo:active { background: #f7f7f7; }
         .convo img.av { width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: #eee; }
@@ -204,11 +242,6 @@
         .msg.them { align-self: flex-start; background: #fff; border: 1px solid var(--line); border-bottom-left-radius: 6px; }
         .msg .mn { display: block; font-size: 11px; font-weight: 700; color: var(--saffron-d); margin-bottom: 2px; }
         .msg .mt { display: block; font-size: 10px; opacity: .7; margin-top: 3px; text-align: right; }
-        .typing { align-self: flex-start; background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 13px 16px; display: flex; gap: 4px; }
-        .typing i { width: 7px; height: 7px; border-radius: 50%; background: #bbb; animation: blink 1s infinite; }
-        .typing i:nth-child(2) { animation-delay: .2s; }
-        .typing i:nth-child(3) { animation-delay: .4s; }
-        @keyframes blink { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }
         .chatinput { display: flex; gap: 8px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--line); }
         .chatinput input { flex: 1; border: 1px solid var(--line); border-radius: 22px; padding: 11px 16px; font-size: 15px; font-family: inherit; outline: none; background: var(--bg); color: var(--ink); }
         .chatinput input:focus { border-color: var(--saffron); background: #fff; }
@@ -223,23 +256,53 @@
         .fld textarea { resize: vertical; min-height: 76px; }
         .savebtn { background: linear-gradient(135deg, var(--saffron), var(--saffron-d)); color: #fff; border: none; border-radius: 12px; padding: 13px; font-size: 16px; font-weight: 800; width: calc(100% - 28px); margin: 6px 14px 20px; cursor: pointer; font-family: inherit; }
         .savebtn:active { transform: scale(.98); }
+        .savebtn:disabled { opacity: .5; }
         .avgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 4px 14px 16px; }
         .avgrid img { width: 100%; aspect-ratio: 1; border-radius: 50%; object-fit: cover; cursor: pointer; border: 3px solid transparent; background: #eee; }
         .avgrid img.sel { border-color: var(--saffron); }
-        .epavwrap { text-align: center; padding: 18px 0 8px; }
+        .epavwrap { text-align: center; padding: 18px 0 8px; position: relative; }
         .epav { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; background: #eee; }
+        .epavcam { position: absolute; bottom: 6px; left: calc(50% + 22px); width: 32px; height: 32px; border-radius: 50%; background: var(--saffron); color: #fff; border: 3px solid #fff; font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
         .toast {
             position: fixed; bottom: 92px; left: 50%; transform: translateX(-50%) translateY(16px);
             background: #1c1c1e; color: #fff; font-size: 14px; font-weight: 600;
             padding: 11px 20px; border-radius: 24px; opacity: 0; pointer-events: none;
-            transition: opacity .25s, transform .25s; z-index: 70; white-space: nowrap; max-width: 92vw;
+            transition: opacity .25s, transform .25s; z-index: 90; white-space: nowrap; max-width: 92vw;
         }
         .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .loader { text-align: center; padding: 30px; color: var(--muted); font-size: 14px; }
+        .spin { width: 26px; height: 26px; border: 3px solid #f3d9a8; border-top-color: var(--saffron-d); border-radius: 50%; margin: 0 auto 10px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="app">
+    <!-- AUTH GATE -->
+    <div id="authScreen" class="authwrap hidden">
+        <img class="authlogo" src="icon-192.png" alt="Adda">
+        <div class="authtitle">Adda<span>.</span></div>
+        <div class="authsub">Apna social media · made in India 🇮🇳</div>
+        <div class="authtabs">
+            <button id="tabLogin" class="on">Log in</button>
+            <button id="tabSignup">Sign up</button>
+        </div>
+        <div class="authform" id="loginForm">
+            <input id="liEmail" type="email" placeholder="Email" autocomplete="email">
+            <input id="liPass" type="password" placeholder="Password" autocomplete="current-password">
+            <button class="savebtn" id="liBtn" style="width:100%;margin:6px 0 0;">Log in</button>
+        </div>
+        <div class="authform hidden" id="signupForm">
+            <input id="suName" placeholder="Full name" maxlength="40" autocomplete="name">
+            <input id="suUser" placeholder="Username (e.g. priya.sharma)" maxlength="24" autocomplete="username">
+            <input id="suEmail" type="email" placeholder="Email" autocomplete="email">
+            <input id="suPass" type="password" placeholder="Password (6+ characters)" autocomplete="new-password">
+            <button class="savebtn" id="suBtn" style="width:100%;margin:6px 0 0;">Create account</button>
+        </div>
+        <div class="autherr" id="authErr"></div>
+        <div class="authnote">Free forever · your data stays yours.<br>Made with ❤️ by sauravhhh</div>
+    </div>
+
+    <div class="app" id="appShell">
         <header>
             <img class="logo" src="icon-192.png" alt="Adda">
             <div class="name">Adda<span>.</span></div>
@@ -248,7 +311,7 @@
             </div>
             <div class="hicon" id="msgBtn" aria-label="Messages">
                 <svg width="23" height="23" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-                <span class="dot"></span>
+                <span class="dot" style="display:none;"></span>
             </div>
         </header>
 
@@ -267,13 +330,13 @@
         <section id="tab-create" class="hidden">
             <div class="composer">
                 <div class="crow">
-                    <img class="av" src="https://i.pravatar.cc/100?img=12" alt="">
+                    <img class="av" id="composerAv" src="" alt="">
                     <textarea id="composerText" placeholder="Kya chal raha hai? Share an update…" maxlength="280"></textarea>
                 </div>
                 <div class="imgpick" id="imgPick"></div>
                 <button class="postbtn" id="publishBtn" disabled>Post to Adda</button>
             </div>
-            <div class="mocknote">Your posts are saved on this device only.<br>No account, no backend — it's a mockup.</div>
+            <div class="mocknote">Posts go live instantly for everyone on Adda.</div>
         </section>
 
         <!-- ACTIVITY -->
@@ -285,19 +348,19 @@
         <section id="tab-profile" class="hidden">
             <div class="pcover"></div>
             <div class="pbody">
-                <img class="pav" id="pfAv" src="https://i.pravatar.cc/200?img=12" alt="">
-                <div class="pn" id="pfName">Saurabh Saha</div>
-                <div class="ph" id="pfHandle">@sauravhhh</div>
-                <div class="pbio" id="pfBio">Building apps · Assam, India 🇮🇳<br>Chai enthusiast ☕</div>
+                <img class="pav" id="pfAv" src="" alt="">
+                <div class="pn" id="pfName">…</div>
+                <div class="ph" id="pfHandle">@…</div>
+                <div class="pbio" id="pfBio"></div>
                 <div class="stats">
                     <div class="s"><div class="n" id="statPosts">0</div><div class="l">Posts</div></div>
-                    <div class="s"><div class="n">2,418</div><div class="l">Followers</div></div>
-                    <div class="s"><div class="n">312</div><div class="l">Following</div></div>
+                    <div class="s"><div class="n" id="statFollowers">0</div><div class="l">Followers</div></div>
+                    <div class="s"><div class="n" id="statFollowing">0</div><div class="l">Following</div></div>
                 </div>
                 <button class="editbtn" id="editProfileBtn">Edit profile</button>
+                <button class="logoutbtn" id="logoutBtn">Log out</button>
             </div>
             <div class="grid" id="profileGrid"></div>
-            <div class="mocknote">Adda mockup · UI prototype<br>All data lives on this device only.</div>
         </section>
 
         <nav><div class="row" id="tabbar"></div></nav>
@@ -306,10 +369,14 @@
     <div id="editProfile" class="overlay hidden">
         <div class="dhead"><button class="back" data-back aria-label="Back">‹</button><div class="dt">Edit Profile</div></div>
         <div style="overflow-y:auto;flex:1;">
-            <div class="epavwrap"><img class="epav" id="epAv" src="" alt="Profile photo"></div>
-            <div class="fld"><label>Choose photo</label></div>
+            <div class="epavwrap">
+                <img class="epav" id="epAv" src="" alt="Profile photo">
+                <label class="epavcam" for="avatarInput">📷</label>
+                <input type="file" id="avatarInput" accept="image/*" class="hidden">
+            </div>
+            <div class="fld"><label>Or choose a sample photo</label></div>
             <div class="avgrid" id="avGrid"></div>
-            <div class="fld"><label>Name</label><input id="epName" maxlength="30" autocomplete="off"></div>
+            <div class="fld"><label>Name</label><input id="epName" maxlength="40" autocomplete="off"></div>
             <div class="fld"><label>Username</label><input id="epHandle" maxlength="24" autocomplete="off"></div>
             <div class="fld"><label>Bio</label><textarea id="epBio" maxlength="150"></textarea></div>
             <button class="savebtn" id="epSave">Save</button>
@@ -317,7 +384,11 @@
     </div>
 
     <div id="dmList" class="overlay hidden">
-        <div class="dhead"><button class="back" data-back aria-label="Back">‹</button><div class="dt">Messages</div></div>
+        <div class="dhead">
+            <button class="back" data-back aria-label="Back">‹</button>
+            <div class="dt">Messages</div>
+            <button class="newchat" id="newChatBtn" aria-label="New chat">✎</button>
+        </div>
         <div id="convoList" style="overflow-y:auto;flex:1;"></div>
     </div>
 
@@ -346,25 +417,26 @@
     </div>
 
     <div class="toast" id="toast"></div>
-
     <script>
         (function () {
             'use strict';
 
-            var AV = function (n) { return 'https://i.pravatar.cc/100?img=' + n; };
-            var PIC = function (seed, w, h) { return 'https://picsum.photos/seed/' + seed + '/' + (w || 600) + '/' + (h || 600); };
-            var ME = { name: 'Saurabh Saha', handle: 'sauravhhh', avatar: 'https://i.pravatar.cc/100?img=12' };
+            // ---------- Supabase ----------
+            var SUPABASE_URL = 'https://mosycrhrpdaqcbfqolhq.supabase.co';
+            var SUPABASE_KEY = 'sb_publishable_Z-dY6KLzNbsMb_ahgGVjJg_K5z6iyhc';
+            var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            var SEED_POSTS = [
-                { id: 'p1', name: 'Priya Sharma', handle: 'priya.sharma', av: 47, time: '12m', img: 'adda-monsoon', likes: 2143, caption: 'Monsoon chai hits different ☕🌧️', comments: [{ n: 'Arjun Mehta', t: 'Adrak wali? 👀' }, { n: 'Priya Sharma', t: 'Always adrak wali 😌' }] },
-                { id: 'p2', name: 'Arjun Mehta', handle: 'arjun.mehta', av: 53, time: '48m', img: 'adda-marine', likes: 1876, caption: 'Sunset at Marine Drive. Mumbai, you beauty 🌅', comments: [{ n: 'Kavya Iyer', t: 'Take me next time!' }] },
-                { id: 'p3', name: 'Rohan Verma', handle: 'rohan.v', av: 59, time: '2h', img: 'adda-cricket', likes: 5231, caption: 'INDIAAA! What a finish! 🏏🇮🇳', comments: [{ n: 'Vikram Singh', t: 'Last over gave me a heart attack 😭' }, { n: 'Rohan Verma', t: 'Same bro same' }] },
-                { id: 'p4', name: 'Sneha Kulkarni', handle: 'sneha.k', av: 44, time: '3h', img: 'adda-panipuri', likes: 3420, caption: 'Pani puri > everything. No debate 🥹', comments: [{ n: 'Ananya Das', t: 'The dahi puri there is unreal' }] },
-                { id: 'p5', name: 'Kavya Iyer', handle: 'kavya.iyer', av: 45, time: '5h', img: 'adda-filter', likes: 1204, caption: 'Madras mornings begin with degree coffee ☕', comments: [] },
-                { id: 'p6', name: 'Vikram Singh', handle: 'vikram.singh', av: 60, time: '8h', img: 'adda-ladakh', likes: 4102, caption: 'Ladakh diaries, day 3 🏔️ Oxygen low, views high', comments: [{ n: 'Aditya Rao', t: 'Adding this to the bucket list' }] },
-                { id: 'p7', name: 'Ananya Das', handle: 'ananya.das', av: 32, time: '11h', img: 'adda-pujo', likes: 2870, caption: 'Pujo asche! Pandal hopping list ready ✨🪔', comments: [{ n: 'Sneha Kulkarni', t: 'College Street first, as always' }] },
-                { id: 'p8', name: 'Aditya Rao', handle: 'aditya.rao', av: 15, time: '1d', img: 'adda-desk', likes: 956, caption: 'Shipping season 💻☕ Late nights, big dreams', comments: [] }
-            ];
+            var PIC = function (seed, w, h) { return 'https://picsum.photos/seed/' + seed + '/' + (w || 600) + '/' + (h || 600); };
+            var AV = function (n) { return 'https://i.pravatar.cc/100?img=' + n; };
+
+            var myId = null;
+            var myProfile = null;
+            var feedPosts = [];
+            var seenStories = [];
+            try { seenStories = JSON.parse(localStorage.getItem('adda-seen') || '[]'); } catch (e) {}
+            function saveSeen() { try { localStorage.setItem('adda-seen', JSON.stringify(seenStories)); } catch (e) {} }
+            function readTimes() { try { return JSON.parse(localStorage.getItem('adda-read') || '{}'); } catch (e) { return {}; } }
+            function saveReadTimes(m) { try { localStorage.setItem('adda-read', JSON.stringify(m)); } catch (e) {} }
 
             var SEED_STORIES = [
                 { name: 'Priya', av: 47, img: 'adda-monsoon' },
@@ -376,56 +448,134 @@
                 { name: 'Ananya', av: 32, img: 'adda-pujo' }
             ];
 
-            var SEED_NOTIFS = [
-                { av: 47, icon: '❤️', text: '<b>Priya Sharma</b> liked your post', time: '2m' },
-                { av: 59, icon: '👥', text: '<b>Rohan Verma</b> started following you', time: '26m' },
-                { av: 44, icon: '💬', text: '<b>Sneha Kulkarni</b> commented: “Full agree 😄”', time: '1h' },
-                { av: 53, icon: '❤️', text: '<b>Arjun Mehta</b> and <b>214 others</b> liked your photo', time: '3h' },
-                { av: 32, icon: '👥', text: '<b>Ananya Das</b> started following you', time: '6h' },
-                { av: 15, icon: '🏷️', text: '<b>Aditya Rao</b> mentioned you in a comment', time: '1d' }
-            ];
-
-            var SEED_CONVOS = [
-                { id: 'c1', name: 'Priya Sharma', av: 47, online: true, seed: [{ f: 'them', t: 'Kal chai pe milte hai? ☕', time: '10:24' }, { f: 'them', t: 'Woh nayi wali jagah try karte hai', time: '10:25' }] },
-                { id: 'c2', name: 'Rohan Verma', av: 59, online: true, seed: [{ f: 'them', t: 'Bhai match dekha kya?! 🏏', time: '09:12' }] },
-                { id: 'c3', name: 'IPL Gang 🏏', av: 60, online: false, group: ['Rohan', 'Vikram', 'Aditya'], seed: [{ f: 'them', n: 'Vikram', t: 'Sunday ko sab free?', time: 'Yesterday' }] },
-                { id: 'c4', name: 'Sneha Kulkarni', av: 44, online: false, seed: [{ f: 'me', t: 'Pani puri wali photo bhej na 📸', time: 'Yesterday' }, { f: 'them', t: 'Bhejti hu, ekdum kadak aayi hai 😄', time: 'Yesterday' }] }
-            ];
-
-            var REPLIES = ['Haha sahi hai 😄', 'Arre wah! 🔥', 'Kal baat karte hai 👍', 'Bhej raha hu, ek sec', '😂😂😂', 'Done ✅', 'Sahi bol raha hai tu', 'Chal milte hai fir!'];
-
-            // ---------- state ----------
-            var store = { liked: [], comments: {}, mine: [], following: [], seenStories: [], msgs: {}, unread: { c1: 2, c2: 1 }, profile: null };
-            try {
-                var saved = JSON.parse(localStorage.getItem('adda-v1') || 'null');
-                if (saved) store = Object.assign(store, saved);
-            } catch (e) {}
-            function persist() { try { localStorage.setItem('adda-v1', JSON.stringify(store)); } catch (e) {} }
-
-            function allPosts() {
-                return store.mine.concat(SEED_POSTS);
-            }
-            function getComments(p) {
-                var extra = store.comments[p.id] || [];
-                return (p.comments || []).concat(extra);
-            }
-            function likeCount(p) {
-                return p.likes + (store.liked.indexOf(p.id) >= 0 ? 1 : 0);
-            }
+            // ---------- helpers ----------
             function fmt(n) {
+                n = n || 0;
                 if (n >= 1000) return (n / 1000).toFixed(1).replace('.0', '') + 'k';
                 return '' + n;
             }
             function esc(s) {
                 return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             }
-
+            function timeAgo(iso) {
+                var s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+                if (s < 60) return 'now';
+                if (s < 3600) return Math.floor(s / 60) + 'm';
+                if (s < 86400) return Math.floor(s / 3600) + 'h';
+                if (s < 604800) return Math.floor(s / 86400) + 'd';
+                return new Date(iso).toLocaleDateString();
+            }
+            function clockTime(iso) {
+                var d = new Date(iso), h = d.getHours(), m = d.getMinutes();
+                return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
+            }
             var toastEl = document.getElementById('toast');
             function toast(msg) {
                 toastEl.textContent = msg;
                 toastEl.classList.add('show');
                 clearTimeout(toast.t);
-                toast.t = setTimeout(function () { toastEl.classList.remove('show'); }, 1700);
+                toast.t = setTimeout(function () { toastEl.classList.remove('show'); }, 1800);
+            }
+            function authError(msg) {
+                var el = document.getElementById('authErr');
+                el.textContent = msg;
+                setTimeout(function () { el.textContent = ''; }, 4000);
+            }
+
+            // ---------- auth ----------
+            var authScreen = document.getElementById('authScreen');
+            var appShell = document.getElementById('appShell');
+            document.getElementById('tabLogin').addEventListener('click', function () {
+                this.classList.add('on'); document.getElementById('tabSignup').classList.remove('on');
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('signupForm').classList.add('hidden');
+            });
+            document.getElementById('tabSignup').addEventListener('click', function () {
+                this.classList.add('on'); document.getElementById('tabLogin').classList.remove('on');
+                document.getElementById('signupForm').classList.remove('hidden');
+                document.getElementById('loginForm').classList.add('hidden');
+            });
+
+            async function ensureProfile(user) {
+                var res = await sb.from('profiles').select('*').eq('id', user.id).single();
+                if (res.data) return res.data;
+                var fallback = (user.email || 'user').split('@')[0].replace(/[^a-z0-9._]/gi, '').toLowerCase() || 'user';
+                var ins = await sb.from('profiles').insert({
+                    id: user.id,
+                    username: fallback + Math.floor(Math.random() * 900 + 100),
+                    name: fallback,
+                    bio: '',
+                    avatar_url: AV(12)
+                }).select().single();
+                if (ins.error) { authError(ins.error.message); return null; }
+                return ins.data;
+            }
+
+            document.getElementById('liBtn').addEventListener('click', async function () {
+                var email = document.getElementById('liEmail').value.trim();
+                var pass = document.getElementById('liPass').value;
+                if (!email || !pass) { authError('Enter your email and password.'); return; }
+                this.disabled = true;
+                var res = await sb.auth.signInWithPassword({ email: email, password: pass });
+                this.disabled = false;
+                if (res.error) { authError(res.error.message); return; }
+                await startApp(res.data.session);
+            });
+            document.getElementById('suBtn').addEventListener('click', async function () {
+                var name = document.getElementById('suName').value.trim();
+                var username = document.getElementById('suUser').value.trim().replace(/^@+/, '').replace(/\s+/g, '').toLowerCase();
+                var email = document.getElementById('suEmail').value.trim();
+                var pass = document.getElementById('suPass').value;
+                if (!name || !username || !email || !pass) { authError('Fill all fields to create your account.'); return; }
+                if (pass.length < 6) { authError('Password needs at least 6 characters.'); return; }
+                this.disabled = true;
+                var res = await sb.auth.signUp({ email: email, password: pass });
+                if (res.error) { this.disabled = false; authError(res.error.message); return; }
+                var user = res.data.user;
+                // claim username first so it is unique
+                if (res.data.session) {
+                    var chk = await sb.from('profiles').select('id').eq('username', username).limit(1);
+                    if (chk.data && chk.data.length) {
+                        await sb.auth.signOut();
+                        this.disabled = false;
+                        authError('That username is taken — try another.');
+                        return;
+                    }
+                    var ins = await sb.from('profiles').insert({
+                        id: user.id, username: username, name: name, bio: '', avatar_url: AV(12)
+                    });
+                    this.disabled = false;
+                    if (ins.error) {
+                        await sb.auth.signOut();
+                        authError(ins.error.message.includes('duplicate') ? 'That username is taken — try another.' : ins.error.message);
+                        return;
+                    }
+                    await startApp(res.data.session);
+                } else {
+                    this.disabled = false;
+                    authError('Account created! Check your email to confirm, then log in.');
+                }
+            });
+            document.getElementById('logoutBtn').addEventListener('click', async function () {
+                await sb.auth.signOut();
+                location.reload();
+            });
+
+            async function startApp(session) {
+                myId = session.user.id;
+                myProfile = await ensureProfile(session.user);
+                if (!myProfile) { authScreen.classList.remove('hidden'); return; }
+                authScreen.classList.add('hidden');
+                document.getElementById('composerAv').src = myProfile.avatar_url || AV(12);
+                applyProfile();
+                renderStories();
+                await reloadFeed();
+                renderExplore();
+                renderImgPick();
+                await renderActivity();
+                await renderProfileGrid();
+                updateMsgDot();
+                subscribeRealtime();
             }
 
             // ---------- tabs ----------
@@ -436,7 +586,6 @@
                 { id: 'activity', svg: '<path d="M12 20.5C7 16.5 3 13.2 3 9.3 3 6.4 5.2 4.5 7.7 4.5c1.7 0 3.3.9 4.3 2.4 1-1.5 2.6-2.4 4.3-2.4 2.5 0 4.7 1.9 4.7 4.8 0 3.9-4 7.2-9 11.2z"/>' },
                 { id: 'profile', svg: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5"/>' }
             ];
-            var currentTab = 'home';
             var tabbar = document.getElementById('tabbar');
             TABS.forEach(function (t) {
                 var b = document.createElement('button');
@@ -448,7 +597,6 @@
                 tabbar.appendChild(b);
             });
             function switchTab(id) {
-                currentTab = id;
                 Array.prototype.forEach.call(tabbar.children, function (b) {
                     b.classList.toggle('on', b.getAttribute('data-tab') === id);
                 });
@@ -456,14 +604,16 @@
                     document.getElementById('tab-' + t.id).classList.toggle('hidden', t.id !== id);
                 });
                 window.scrollTo(0, 0);
+                if (id === 'activity') renderActivity();
+                if (id === 'profile') renderProfileGrid();
             }
 
-            // ---------- stories ----------
+            // ---------- stories (demo) ----------
             function renderStories() {
                 var el = document.getElementById('stories');
-                var html = '<div class="story" data-story="me"><div class="ring" style="background:#e5e5e5;"><img src="' + ME.avatar + '" alt=""></div><div class="sname">Your story</div></div>';
+                var html = '<div class="story" data-story="me"><div class="ring" style="background:#e5e5e5;"><img src="' + esc(myProfile.avatar_url || AV(12)) + '" alt=""></div><div class="sname">Your story</div></div>';
                 SEED_STORIES.forEach(function (s, i) {
-                    var seen = store.seenStories.indexOf(i) >= 0 ? ' seen' : '';
+                    var seen = seenStories.indexOf(i) >= 0 ? ' seen' : '';
                     html += '<div class="story' + seen + '" data-story="' + i + '"><div class="ring"><img src="' + AV(s.av) + '" alt="" loading="lazy"></div><div class="sname">' + esc(s.name) + '</div></div>';
                 });
                 el.innerHTML = html;
@@ -473,17 +623,31 @@
             }
 
             // ---------- feed ----------
+            async function reloadFeed() {
+                var feed = document.getElementById('feed');
+                feed.innerHTML = '<div class="loader"><div class="spin"></div>Loading feed…</div>';
+                var res = await sb.from('posts')
+                    .select('id,caption,image_url,created_at,user_id,profiles(id,username,name,avatar_url),likes(user_id),comments(id,body,created_at,user_id,profiles(username))')
+                    .order('created_at', { ascending: false }).limit(40);
+                if (res.error) { feed.innerHTML = '<div class="loader">Could not load feed. Pull to retry.</div>'; return; }
+                feedPosts = res.data || [];
+                renderFeed();
+            }
+            function isLiked(p) { return (p.likes || []).some(function (l) { return l.user_id === myId; }); }
             function postHTML(p) {
-                var liked = store.liked.indexOf(p.id) >= 0;
-                var following = store.following.indexOf(p.handle) >= 0;
-                var comments = getComments(p);
+                var prof = p.profiles || {};
+                var liked = isLiked(p);
+                var mine = p.user_id === myId;
+                var comments = p.comments || [];
                 var shown = comments.slice(-2);
                 var html = '<article class="post" data-id="' + p.id + '">';
-                html += '<div class="phead"><img class="av" src="' + esc(p.avatar || AV(p.av)) + '" alt="" loading="lazy">' +
-                    '<div class="who"><div class="n">' + esc(p.name) + '</div><div class="t">@' + esc(p.handle) + ' · ' + esc(p.time) + '</div></div>' +
-                    (p.mine ? '' : '<button class="followbtn' + (following ? ' following' : '') + '">' + (following ? 'Following' : 'Follow') + '</button>') + '</div>';
-                if (p.img) {
-                    html += '<div class="pimgwrap"><img class="pimg" src="' + PIC(p.img) + '" alt="" loading="lazy">' +
+                html += '<div class="phead"><img class="av" src="' + esc(prof.avatar_url || AV(12)) + '" alt="" loading="lazy">' +
+                    '<div class="who"><div class="n">' + esc(prof.name || 'User') + '</div><div class="t">@' + esc(prof.username || 'user') + ' · ' + timeAgo(p.created_at) + '</div></div>' +
+                    (mine
+                        ? '<button class="delbtn">Delete</button>'
+                        : '<button class="followbtn" data-follow="' + esc(prof.username || '') + '">Follow</button>') + '</div>';
+                if (p.image_url) {
+                    html += '<div class="pimgwrap"><img class="pimg" src="' + esc(p.image_url) + '" alt="" loading="lazy">' +
                         '<div class="bigheart"><svg viewBox="0 0 24 24" fill="#fff"><path d="M12 21C7 16.5 3 13.2 3 9.3 3 6.4 5.2 4.5 7.7 4.5c1.7 0 3.3.9 4.3 2.4 1-1.5 2.6-2.4 4.3-2.4 2.5 0 4.7 1.9 4.7 4.8 0 3.9-4 7.2-9 11.2z"/></svg></div></div>';
                 }
                 html += '<div class="pactions">' +
@@ -491,51 +655,57 @@
                     '<button class="commentbtn" aria-label="Comment"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg></button>' +
                     '<button class="sharebtn" aria-label="Share"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>' +
                     '<span class="spacer"></span></div>';
-                html += '<div class="plikes">' + fmt(likeCount(p)) + ' likes</div>';
-                html += '<div class="pcap"><b>' + esc(p.handle) + '</b> ' + esc(p.caption) + '</div>';
+                html += '<div class="plikes">' + fmt((p.likes || []).length) + ' likes</div>';
+                html += '<div class="pcap"><b>' + esc(prof.username || 'user') + '</b> ' + esc(p.caption) + '</div>';
                 html += '<div class="pcomments" data-comments>';
                 if (comments.length > 2) html += '<div class="viewall">View all ' + comments.length + ' comments</div>';
-                shown.forEach(function (c) { html += '<div class="c"><b>' + esc(c.n) + '</b> ' + esc(c.t) + '</div>'; });
-                html += '</div>';
+                html += commentsHTML(shown) + '</div>';
                 html += '<div class="cinput hidden"><input placeholder="Add a comment…" maxlength="140"><button>Post</button></div>';
                 html += '</article>';
                 return html;
             }
-
+            function commentsHTML(list) {
+                return list.map(function (c) {
+                    var un = (c.profiles && c.profiles.username) || 'user';
+                    return '<div class="c"><b>' + esc(un) + '</b> ' + esc(c.body) + '</div>';
+                }).join('');
+            }
             function renderFeed() {
                 var feed = document.getElementById('feed');
-                feed.innerHTML = allPosts().map(postHTML).join('');
+                if (!feedPosts.length) {
+                    feed.innerHTML = '<div class="mocknote" style="padding:40px 14px;">No posts yet.<br>Be the first — tap ＋ below to share.</div>';
+                    return;
+                }
+                feed.innerHTML = feedPosts.map(postHTML).join('');
                 Array.prototype.forEach.call(feed.children, function (card) {
                     var id = card.getAttribute('data-id');
-                    var p = allPosts().filter(function (x) { return x.id === id; })[0];
+                    var p = feedPosts.filter(function (x) { return x.id === id; })[0];
+                    if (!p) return;
                     var likeBtn = card.querySelector('.likebtn');
                     var pimg = card.querySelector('.pimg');
                     var heart = card.querySelector('.bigheart');
 
-                    function toggleLike(animate) {
-                        var i = store.liked.indexOf(id);
+                    async function toggleLike(animate) {
                         var svg = likeBtn.querySelector('svg');
-                        if (i >= 0) {
-                            store.liked.splice(i, 1);
+                        var liked = isLiked(p);
+                        if (liked) {
                             svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', 'currentColor');
+                            p.likes = (p.likes || []).filter(function (l) { return l.user_id !== myId; });
+                            await sb.from('likes').delete().eq('post_id', id).eq('user_id', myId);
                         } else {
-                            store.liked.push(id);
                             svg.setAttribute('fill', '#ef4444'); svg.setAttribute('stroke', '#ef4444');
-                            if (animate && heart) {
-                                heart.classList.remove('pop');
-                                void heart.offsetWidth;
-                                heart.classList.add('pop');
-                            }
+                            (p.likes = p.likes || []).push({ user_id: myId });
+                            if (animate && heart) { heart.classList.remove('pop'); void heart.offsetWidth; heart.classList.add('pop'); }
+                            await sb.from('likes').insert({ post_id: id, user_id: myId });
                         }
-                        persist();
-                        card.querySelector('.plikes').textContent = fmt(likeCount(p)) + ' likes';
+                        card.querySelector('.plikes').textContent = fmt((p.likes || []).length) + ' likes';
                     }
                     likeBtn.addEventListener('click', function () { toggleLike(false); });
                     if (pimg) {
                         var lastTap = 0;
                         pimg.addEventListener('click', function () {
                             var now = Date.now();
-                            if (now - lastTap < 350 && store.liked.indexOf(id) < 0) toggleLike(true);
+                            if (now - lastTap < 350 && !isLiked(p)) toggleLike(true);
                             lastTap = now;
                         });
                     }
@@ -548,62 +718,107 @@
                     });
                     var viewAll = card.querySelector('.viewall');
                     if (viewAll) viewAll.addEventListener('click', function () {
+                        card.querySelector('[data-comments]').innerHTML = commentsHTML(p.comments || []);
                         cinput.classList.remove('hidden');
                         cfield.focus();
                     });
-                    cinput.querySelector('button').addEventListener('click', function () { addComment(); });
-                    cfield.addEventListener('keydown', function (e) { if (e.key === 'Enter') addComment(); });
-                    function addComment() {
+                    async function addComment() {
                         var t = cfield.value.trim();
                         if (!t) return;
-                        if (!store.comments[id]) store.comments[id] = [];
-                        store.comments[id].push({ n: ME.name, t: t });
-                        persist();
                         cfield.value = '';
-                        renderFeed();
+                        var res = await sb.from('comments').insert({ post_id: id, user_id: myId, body: t })
+                            .select('id,body,created_at,user_id,profiles(username)').single();
+                        if (res.error) { toast('Could not post comment'); return; }
+                        (p.comments = p.comments || []).push(res.data);
+                        card.querySelector('[data-comments]').innerHTML = commentsHTML((p.comments || []).slice(-2));
                         toast('Comment posted');
                     }
+                    cinput.querySelector('button').addEventListener('click', addComment);
+                    cfield.addEventListener('keydown', function (e) { if (e.key === 'Enter') addComment(); });
                     card.querySelector('.sharebtn').addEventListener('click', function () {
                         var link = location.origin + location.pathname + '#post-' + id;
                         if (navigator.clipboard) navigator.clipboard.writeText(link).catch(function () {});
                         toast('Link copied to clipboard');
                     });
                     var fbtn = card.querySelector('.followbtn');
-                    if (fbtn) fbtn.addEventListener('click', function () {
-                        var i = store.following.indexOf(p.handle);
-                        if (i >= 0) { store.following.splice(i, 1); fbtn.textContent = 'Follow'; fbtn.classList.remove('following'); }
-                        else { store.following.push(p.handle); fbtn.textContent = 'Following'; fbtn.classList.add('following'); toast('Following @' + p.handle); }
-                        persist();
+                    if (fbtn) {
+                        (async function () {
+                            var r = await sb.from('follows').select('follower_id').eq('follower_id', myId).eq('following_id', p.user_id).limit(1);
+                            if (r.data && r.data.length) { fbtn.textContent = 'Following'; fbtn.classList.add('following'); }
+                        })();
+                        fbtn.addEventListener('click', async function () {
+                            var following = fbtn.classList.contains('following');
+                            if (following) {
+                                await sb.from('follows').delete().eq('follower_id', myId).eq('following_id', p.user_id);
+                                fbtn.textContent = 'Follow'; fbtn.classList.remove('following');
+                            } else {
+                                var r = await sb.from('follows').insert({ follower_id: myId, following_id: p.user_id });
+                                if (r.error) { toast('Could not follow'); return; }
+                                fbtn.textContent = 'Following'; fbtn.classList.add('following');
+                                toast('Following @' + ((p.profiles || {}).username || 'user'));
+                            }
+                        });
+                    }
+                    var del = card.querySelector('.delbtn');
+                    if (del) del.addEventListener('click', async function () {
+                        if (!confirm('Delete this post?')) return;
+                        var r = await sb.from('posts').delete().eq('id', id);
+                        if (r.error) { toast('Could not delete'); return; }
+                        feedPosts = feedPosts.filter(function (x) { return x.id !== id; });
+                        renderFeed(); renderExplore();
+                        toast('Post deleted');
                     });
                 });
             }
 
             // ---------- explore ----------
             function renderExplore() {
-                var seeds = ['adda-monsoon', 'adda-marine', 'adda-cricket', 'adda-panipuri', 'adda-filter', 'adda-ladakh', 'adda-pujo', 'adda-desk', 'adda-chai', 'adda-holi', 'adda-taj', 'adda-auto', 'adda-thali', 'adda-ghat', 'adda-metro', 'adda-mela', 'adda-saree', 'adda-gym'];
-                document.getElementById('exploreGrid').innerHTML = seeds.map(function (s) {
-                    return '<img src="' + PIC(s, 400, 400) + '" alt="" loading="lazy">';
-                }).join('');
-                Array.prototype.forEach.call(document.getElementById('exploreGrid').children, function (im) {
-                    im.addEventListener('click', function () { toast('Mockup — post view coming with backend'); });
-                });
+                var imgs = feedPosts.filter(function (p) { return p.image_url; });
+                document.getElementById('exploreGrid').innerHTML = imgs.length
+                    ? imgs.map(function (p) { return '<img src="' + esc(p.image_url) + '" alt="" loading="lazy">'; }).join('')
+                    : '<div class="mocknote" style="grid-column:1/-1;padding:40px 14px;">Photos from the community will appear here.</div>';
             }
 
             // ---------- create ----------
-            var pickedImg = null;
+            var pickedImg = null;   // picsum seed string
+            var pickedFile = null;  // File object
+            var pickedPreview = null;
             function renderImgPick() {
                 var seeds = ['adda-chai', 'adda-holi', 'adda-taj', 'adda-thali', 'adda-ghat', 'adda-mela'];
                 var el = document.getElementById('imgPick');
-                el.innerHTML = seeds.map(function (s) {
-                    return '<img src="' + PIC(s, 200, 200) + '" data-seed="' + s + '" alt="" loading="lazy">';
-                }).join('');
-                Array.prototype.forEach.call(el.children, function (im) {
+                el.innerHTML = '<label class="uploadtile" id="uploadTile">📷<span>Upload</span><input type="file" id="photoInput" accept="image/*" class="hidden"></label>' +
+                    seeds.map(function (s) {
+                        return '<img src="' + PIC(s, 200, 200) + '" data-seed="' + s + '" alt="" loading="lazy">';
+                    }).join('');
+                Array.prototype.forEach.call(el.querySelectorAll('img[data-seed]'), function (im) {
                     im.addEventListener('click', function () {
-                        Array.prototype.forEach.call(el.children, function (x) { x.classList.remove('sel'); });
+                        Array.prototype.forEach.call(el.querySelectorAll('img[data-seed]'), function (x) { x.classList.remove('sel'); });
+                        var tile = document.getElementById('uploadTile');
+                        tile.classList.remove('sel');
+                        var pv = tile.querySelector('img');
+                        if (pv) pv.remove();
+                        tile.innerHTML = '📷<span>Upload</span>';
                         im.classList.add('sel');
                         pickedImg = im.getAttribute('data-seed');
+                        pickedFile = null;
                         updatePublishBtn();
                     });
+                });
+                document.getElementById('photoInput').addEventListener('change', function (e) {
+                    var f = e.target.files[0];
+                    if (!f) return;
+                    pickedFile = f;
+                    pickedImg = null;
+                    Array.prototype.forEach.call(el.querySelectorAll('img[data-seed]'), function (x) { x.classList.remove('sel'); });
+                    var tile = document.getElementById('uploadTile');
+                    tile.classList.add('sel');
+                    var url = URL.createObjectURL(f);
+                    tile.innerHTML = '<img src="' + url + '" alt="">';
+                    var inp = document.createElement('input');
+                    inp.type = 'file'; inp.accept = 'image/*'; inp.className = 'hidden'; inp.id = 'photoInput';
+                    tile.appendChild(inp);
+                    inp.addEventListener('change', arguments.callee);
+                    updatePublishBtn();
                 });
             }
             var composerText = document.getElementById('composerText');
@@ -612,60 +827,104 @@
                 publishBtn.disabled = composerText.value.trim().length === 0;
             }
             composerText.addEventListener('input', updatePublishBtn);
-            publishBtn.addEventListener('click', function () {
+            publishBtn.addEventListener('click', async function () {
                 var t = composerText.value.trim();
                 if (!t) return;
-                store.mine.unshift({
-                    id: 'm' + Date.now(), name: ME.name, handle: ME.handle, avatar: ME.avatar,
-                    time: 'now', img: pickedImg, likes: 0, caption: t, comments: [], mine: true
-                });
-                persist();
-                composerText.value = '';
-                pickedImg = null;
-                Array.prototype.forEach.call(document.getElementById('imgPick').children, function (x) { x.classList.remove('sel'); });
-                updatePublishBtn();
-                renderFeed();
-                renderProfileGrid();
-                switchTab('home');
-                toast('Posted 🎉');
+                publishBtn.disabled = true;
+                publishBtn.textContent = 'Posting…';
+                var imageUrl = null;
+                try {
+                    if (pickedFile) {
+                        var path = myId + '/' + Date.now() + '.jpg';
+                        var up = await sb.storage.from('post-images').upload(path, pickedFile, { upsert: true });
+                        if (up.error) throw up.error;
+                        imageUrl = sb.storage.from('post-images').getPublicUrl(path).data.publicUrl;
+                    } else if (pickedImg) {
+                        imageUrl = PIC(pickedImg);
+                    }
+                    var ins = await sb.from('posts').insert({ user_id: myId, caption: t, image_url: imageUrl }).select().single();
+                    if (ins.error) throw ins.error;
+                    composerText.value = '';
+                    pickedImg = null; pickedFile = null;
+                    renderImgPick();
+                    updatePublishBtn();
+                    await reloadFeed();
+                    renderExplore();
+                    switchTab('home');
+                    toast('Posted 🎉');
+                } catch (err) {
+                    toast('Could not post: ' + (err.message || 'error'));
+                }
+                publishBtn.disabled = false;
+                publishBtn.textContent = 'Post to Adda';
             });
 
-            // ---------- activity ----------
-            function renderActivity() {
-                document.getElementById('notifList').innerHTML = SEED_NOTIFS.map(function (n) {
-                    return '<div class="notif"><img class="av" src="' + AV(n.av) + '" alt="" loading="lazy">' +
-                        '<div class="txt">' + n.text + '<br><span class="tm">' + n.time + ' ago</span></div>' +
-                        '<div class="nic">' + n.icon + '</div></div>';
-                }).join('');
+            // ---------- activity (real) ----------
+            async function renderActivity() {
+                var el = document.getElementById('notifList');
+                el.innerHTML = '<div class="loader"><div class="spin"></div>Loading…</div>';
+                var items = [];
+                try {
+                    var myPostIds = feedPosts.filter(function (p) { return p.user_id === myId; }).map(function (p) { return p.id; });
+                    if (myPostIds.length) {
+                        var lr = await sb.from('likes').select('created_at,user_id,profiles(name,avatar_url)').in('post_id', myPostIds).neq('user_id', myId).order('created_at', { ascending: false }).limit(10);
+                        (lr.data || []).forEach(function (l) {
+                            items.push({ t: l.created_at, icon: '❤️', av: (l.profiles || {}).avatar_url, text: '<b>' + esc((l.profiles || {}).name || 'Someone') + '</b> liked your post' });
+                        });
+                        var cr = await sb.from('comments').select('created_at,body,user_id,profiles(name,avatar_url)').in('post_id', myPostIds).neq('user_id', myId).order('created_at', { ascending: false }).limit(10);
+                        (cr.data || []).forEach(function (c) {
+                            items.push({ t: c.created_at, icon: '💬', av: (c.profiles || {}).avatar_url, text: '<b>' + esc((c.profiles || {}).name || 'Someone') + '</b> commented: “' + esc(c.body).slice(0, 60) + '”' });
+                        });
+                    }
+                    var fr = await sb.from('follows').select('created_at,follower_id,profiles!follows_follower_id_fkey(name,avatar_url)').eq('following_id', myId).order('created_at', { ascending: false }).limit(10);
+                    (fr.data || []).forEach(function (f) {
+                        var pr = f.profiles || {};
+                        items.push({ t: f.created_at, icon: '👥', av: pr.avatar_url, text: '<b>' + esc(pr.name || 'Someone') + '</b> started following you' });
+                    });
+                } catch (e) {}
+                items.sort(function (a, b) { return new Date(b.t) - new Date(a.t); });
+                el.innerHTML = items.length
+                    ? items.slice(0, 30).map(function (n) {
+                        return '<div class="notif"><img class="av" src="' + esc(n.av || AV(12)) + '" alt="" loading="lazy">' +
+                            '<div class="txt">' + n.text + '<br><span class="tm">' + timeAgo(n.t) + ' ago</span></div>' +
+                            '<div class="nic">' + n.icon + '</div></div>';
+                    }).join('')
+                    : '<div class="mocknote" style="padding:40px 14px;">Nothing yet.<br>Likes, comments and new followers will show up here.</div>';
             }
 
             // ---------- profile ----------
-            function renderProfileGrid() {
-                var mine = store.mine;
+            function applyProfile() {
+                var p = myProfile || {};
+                document.getElementById('pfAv').src = p.avatar_url || AV(12);
+                document.getElementById('pfName').textContent = p.name || 'User';
+                document.getElementById('pfHandle').textContent = '@' + (p.username || 'user');
+                document.getElementById('pfBio').innerHTML = esc(p.bio || '').replace(/\n/g, '<br>');
+            }
+            async function renderProfileGrid() {
+                var grid = document.getElementById('profileGrid');
+                var res = await sb.from('posts').select('id,image_url').eq('user_id', myId).order('created_at', { ascending: false });
+                var mine = res.data || [];
                 document.getElementById('statPosts').textContent = mine.length;
-                document.getElementById('profileGrid').innerHTML = mine.length
-                    ? mine.map(function (p) { return p.img ? '<img src="' + PIC(p.img, 400, 400) + '" alt="" loading="lazy">' : ''; }).join('')
+                var f1 = await sb.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', myId);
+                var f2 = await sb.from('follows').select('follower_id', { count: 'exact', head: true }).eq('follower_id', myId);
+                document.getElementById('statFollowers').textContent = fmt(f1.count || 0);
+                document.getElementById('statFollowing').textContent = fmt(f2.count || 0);
+                grid.innerHTML = mine.length
+                    ? mine.map(function (p) { return p.image_url ? '<img src="' + esc(p.image_url) + '" alt="" loading="lazy">' : ''; }).join('')
                     : '<div class="mocknote" style="grid-column:1/-1;">No posts yet — tap ＋ to share your first update.</div>';
             }
+
             // ---------- edit profile ----------
             var AVPICK = [12, 32, 5, 68, 25, 52, 15, 44, 33, 59, 22, 47];
-            var epAvNum = 12;
+            var epAvatarUrl = null;
             var editProfileEl = document.getElementById('editProfile');
-
-            function applyProfile() {
-                var p = store.profile || {};
-                document.getElementById('pfAv').src = p.av ? AV(p.av) : 'https://i.pravatar.cc/200?img=12';
-                document.getElementById('pfName').textContent = p.name || 'Saurabh Saha';
-                document.getElementById('pfHandle').textContent = '@' + (p.handle || 'sauravhhh');
-                document.getElementById('pfBio').innerHTML = esc(p.bio || 'Building apps · Assam, India 🇮🇳\nChai enthusiast ☕').replace(/\n/g, '<br>');
-            }
             function openEditProfile() {
-                var p = store.profile || {};
-                epAvNum = p.av || 12;
-                document.getElementById('epAv').src = AV(epAvNum);
-                document.getElementById('epName').value = p.name || 'Saurabh Saha';
-                document.getElementById('epHandle').value = p.handle || 'sauravhhh';
-                document.getElementById('epBio').value = p.bio || 'Building apps · Assam, India 🇮🇳\nChai enthusiast ☕';
+                var p = myProfile || {};
+                epAvatarUrl = p.avatar_url || AV(12);
+                document.getElementById('epAv').src = epAvatarUrl;
+                document.getElementById('epName').value = p.name || '';
+                document.getElementById('epHandle').value = p.username || '';
+                document.getElementById('epBio').value = p.bio || '';
                 var grid = document.getElementById('avGrid');
                 grid.innerHTML = '';
                 AVPICK.forEach(function (n) {
@@ -673,10 +932,10 @@
                     img.src = AV(n);
                     img.alt = '';
                     img.loading = 'lazy';
-                    if (n === epAvNum) img.classList.add('sel');
+                    if (AV(n) === epAvatarUrl) img.classList.add('sel');
                     img.addEventListener('click', function () {
-                        epAvNum = n;
-                        document.getElementById('epAv').src = AV(n);
+                        epAvatarUrl = AV(n);
+                        document.getElementById('epAv').src = epAvatarUrl;
                         Array.prototype.forEach.call(grid.children, function (c) { c.classList.remove('sel'); });
                         img.classList.add('sel');
                     });
@@ -685,22 +944,40 @@
                 editProfileEl.classList.remove('hidden');
             }
             document.getElementById('editProfileBtn').addEventListener('click', openEditProfile);
-            document.getElementById('epSave').addEventListener('click', function () {
-                var name = document.getElementById('epName').value.trim() || 'Saurabh Saha';
-                var handle = document.getElementById('epHandle').value.trim().replace(/^@+/, '').replace(/\s+/g, '').toLowerCase() || 'sauravhhh';
+            document.getElementById('avatarInput').addEventListener('change', async function (e) {
+                var f = e.target.files[0];
+                if (!f) return;
+                toast('Uploading photo…');
+                var path = myId + '/' + Date.now() + '.jpg';
+                var up = await sb.storage.from('avatars').upload(path, f, { upsert: true });
+                if (up.error) { toast('Upload failed'); return; }
+                epAvatarUrl = sb.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+                document.getElementById('epAv').src = epAvatarUrl;
+                toast('Photo ready — tap Save');
+            });
+            document.getElementById('epSave').addEventListener('click', async function () {
+                var name = document.getElementById('epName').value.trim() || myProfile.name;
+                var handle = document.getElementById('epHandle').value.trim().replace(/^@+/, '').replace(/\s+/g, '').toLowerCase() || myProfile.username;
                 var bio = document.getElementById('epBio').value.trim();
-                store.profile = { name: name, handle: handle, bio: bio, av: epAvNum };
-                persist();
+                this.disabled = true;
+                var res = await sb.from('profiles').update({ name: name, username: handle, bio: bio, avatar_url: epAvatarUrl }).eq('id', myId).select().single();
+                this.disabled = false;
+                if (res.error) {
+                    toast(res.error.message.includes('duplicate') ? 'Username taken — try another' : 'Could not save');
+                    return;
+                }
+                myProfile = res.data;
                 applyProfile();
+                document.getElementById('composerAv').src = myProfile.avatar_url || AV(12);
                 editProfileEl.classList.add('hidden');
                 toast('Profile updated ✅');
             });
 
-            // ---------- story viewer ----------
-            var storyIdx = 0, storyTimer = null, storyProg = null;
+            // ---------- story viewer (demo) ----------
+            var storyIdx = 0, storyProg = null;
             var viewer = document.getElementById('storyViewer');
             function openStory(which) {
-                if (which === 'me') { toast('Mockup — camera comes with backend'); return; }
+                if (which === 'me') { toast('Stories are demo for now'); return; }
                 storyIdx = parseInt(which, 10);
                 viewer.classList.remove('hidden');
                 showStory();
@@ -715,7 +992,6 @@
                     return '<div class="seg"><i style="width:' + (i < storyIdx ? '100' : '0') + '%"></i></div>';
                 }).join('');
                 var bar = segs.children[storyIdx].firstChild;
-                clearTimeout(storyTimer);
                 if (storyProg) cancelAnimationFrame(storyProg);
                 var start = performance.now();
                 (function tick(now) {
@@ -724,21 +1000,14 @@
                     if (p < 1) storyProg = requestAnimationFrame(tick);
                     else nextStory();
                 })(start);
-                if (store.seenStories.indexOf(storyIdx) < 0) {
-                    store.seenStories.push(storyIdx);
-                    persist();
-                    renderStories();
-                }
+                if (seenStories.indexOf(storyIdx) < 0) { seenStories.push(storyIdx); saveSeen(); renderStories(); }
             }
             function nextStory() {
                 if (storyIdx < SEED_STORIES.length - 1) { storyIdx++; showStory(); }
                 else closeStory();
             }
-            function prevStory() {
-                if (storyIdx > 0) { storyIdx--; showStory(); }
-            }
+            function prevStory() { if (storyIdx > 0) { storyIdx--; showStory(); } }
             function closeStory() {
-                clearTimeout(storyTimer);
                 if (storyProg) cancelAnimationFrame(storyProg);
                 viewer.classList.add('hidden');
             }
@@ -749,118 +1018,186 @@
             document.getElementById('searchBtn').addEventListener('click', function () { switchTab('explore'); });
             document.getElementById('msgBtn').addEventListener('click', openDMList);
 
-            // ---------- DMs ----------
+            // ---------- DMs (real) ----------
             var dmListEl = document.getElementById('dmList');
             var dmChatEl = document.getElementById('dmChat');
             var chatBody = document.getElementById('chatBody');
             var chatField = document.getElementById('chatField');
             var activeConvo = null;
-            var replyTimer = null;
+            var activeConvoName = '';
+            var msgChannel = null;
+            var dmChannel = null;
 
-            function nowTime() {
-                var d = new Date();
-                var h = d.getHours(), m = d.getMinutes();
-                return (h < 10 ? '0' + h : h) + ':' + (m < 10 ? '0' + m : m);
-            }
-            function convoMsgs(c) {
-                return (c.seed || []).concat(store.msgs[c.id] || []);
-            }
-            function lastMsg(c) {
-                var m = convoMsgs(c);
-                return m.length ? m[m.length - 1] : null;
-            }
-            function totalUnread() {
-                return Object.keys(store.unread).reduce(function (s, k) { return s + (store.unread[k] || 0); }, 0);
-            }
-            function updateMsgDot() {
-                document.querySelector('#msgBtn .dot').style.display = totalUnread() > 0 ? 'block' : 'none';
-            }
-
-            function openDMList() {
+            async function openDMList() {
                 renderDMList();
                 dmListEl.classList.remove('hidden');
             }
-            function renderDMList() {
+            async function myConversations() {
+                var mem = await sb.from('conversation_members').select('conversation_id').eq('user_id', myId);
+                var ids = (mem.data || []).map(function (m) { return m.conversation_id; });
+                if (!ids.length) return [];
+                var res = await sb.from('conversations')
+                    .select('id,created_at,conversation_members(user_id,profiles(id,username,name,avatar_url)),messages(id,body,created_at,sender_id)')
+                    .in('id', ids);
+                var convos = res.data || [];
+                convos.forEach(function (c) {
+                    (c.messages || []).sort(function (a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+                });
+                convos.sort(function (a, b) {
+                    var la = (a.messages || []).slice(-1)[0], lb = (b.messages || []).slice(-1)[0];
+                    return new Date((lb || {}).created_at || b.created_at) - new Date((la || {}).created_at || a.created_at);
+                });
+                return convos;
+            }
+            function convoPeer(c) {
+                var others = (c.conversation_members || []).filter(function (m) { return m.user_id !== myId; });
+                var p = (others[0] || {}).profiles || {};
+                return { name: p.name || 'Chat', username: p.username || '', avatar: p.avatar_url || AV(12) };
+            }
+            async function renderDMList() {
                 var el = document.getElementById('convoList');
-                el.innerHTML = SEED_CONVOS.map(function (c) {
-                    var lm = lastMsg(c);
-                    var u = store.unread[c.id] || 0;
-                    var preview = lm ? (lm.f === 'me' ? 'You: ' : (lm.n ? lm.n + ': ' : '')) + lm.t : 'Say hello 👋';
+                el.innerHTML = '<div class="loader"><div class="spin"></div>Loading chats…</div>';
+                var convos = await myConversations();
+                var reads = readTimes();
+                if (!convos.length) {
+                    el.innerHTML = '<div class="mocknote" style="padding:40px 14px;">No messages yet.<br>Tap ✎ above and enter someone\'s username to start chatting.</div>';
+                    updateMsgDot();
+                    return;
+                }
+                el.innerHTML = convos.map(function (c) {
+                    var peer = convoPeer(c);
+                    var msgs = c.messages || [];
+                    var lm = msgs[msgs.length - 1];
+                    var preview = lm ? (lm.sender_id === myId ? 'You: ' : '') + lm.body : 'Say hello 👋';
+                    var unread = lm && lm.sender_id !== myId && new Date(lm.created_at) > new Date(reads[c.id] || 0);
                     return '<div class="convo" data-id="' + c.id + '">' +
-                        '<img class="av" src="' + AV(c.av) + '" alt="" loading="lazy">' +
-                        '<div class="cmid"><div class="cn">' + esc(c.name) + '</div>' +
-                        '<div class="cl' + (u ? ' unread' : '') + '">' + esc(preview) + '</div></div>' +
-                        '<div class="cright"><div class="ct">' + esc(lm ? lm.time : '') + '</div>' +
-                        (u ? '<span class="ubadge">' + u + '</span>' : '') + '</div></div>';
+                        '<img class="av" src="' + esc(peer.avatar) + '" alt="" loading="lazy">' +
+                        '<div class="cmid"><div class="cn">' + esc(peer.name) + '</div>' +
+                        '<div class="cl' + (unread ? ' unread' : '') + '">' + esc(preview) + '</div></div>' +
+                        '<div class="cright"><div class="ct">' + (lm ? clockTime(lm.created_at) : '') + '</div>' +
+                        (unread ? '<span class="ubadge">1</span>' : '') + '</div></div>';
                 }).join('');
                 Array.prototype.forEach.call(el.children, function (row) {
                     row.addEventListener('click', function () { openChat(row.getAttribute('data-id')); });
                 });
                 updateMsgDot();
             }
-
-            function openChat(id) {
-                activeConvo = SEED_CONVOS.filter(function (c) { return c.id === id; })[0];
+            async function updateMsgDot() {
+                try {
+                    var convos = await myConversations();
+                    var reads = readTimes();
+                    var any = convos.some(function (c) {
+                        var lm = (c.messages || []).slice(-1)[0];
+                        return lm && lm.sender_id !== myId && new Date(lm.created_at) > new Date(reads[c.id] || 0);
+                    });
+                    document.querySelector('#msgBtn .dot').style.display = any ? 'block' : 'none';
+                } catch (e) {}
+            }
+            async function openChat(id) {
+                var convos = await myConversations();
+                activeConvo = convos.filter(function (c) { return c.id === id; })[0];
                 if (!activeConvo) return;
-                document.getElementById('chatAv').src = AV(activeConvo.av);
-                document.getElementById('chatName').textContent = activeConvo.name;
-                document.getElementById('chatStatus').textContent = activeConvo.group ? activeConvo.group.join(', ') : (activeConvo.online ? 'Active now' : 'Active recently');
-                if (store.unread[id]) { delete store.unread[id]; persist(); }
+                var peer = convoPeer(activeConvo);
+                activeConvoName = peer.name;
+                document.getElementById('chatAv').src = peer.avatar;
+                document.getElementById('chatName').textContent = peer.name;
+                document.getElementById('chatStatus').textContent = '@' + peer.username;
+                var reads = readTimes();
+                reads[id] = new Date().toISOString();
+                saveReadTimes(reads);
                 dmListEl.classList.add('hidden');
                 dmChatEl.classList.remove('hidden');
                 renderChat();
                 updateMsgDot();
+                if (msgChannel) sb.removeChannel(msgChannel);
+                msgChannel = sb.channel('chat-' + id)
+                    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: 'conversation_id=eq.' + id }, function (payload) {
+                        if (activeConvo && payload.new.conversation_id === activeConvo.id) {
+                            (activeConvo.messages = activeConvo.messages || []).push(payload.new);
+                            appendMsg(payload.new);
+                            var r = readTimes(); r[id] = new Date().toISOString(); saveReadTimes(r);
+                        }
+                    })
+                    .subscribe();
             }
             function renderChat() {
-                chatBody.innerHTML = convoMsgs(activeConvo).map(function (m) {
-                    var cls = m.f === 'me' ? 'me' : 'them';
-                    var name = (m.n && m.f !== 'me') ? '<span class="mn">' + esc(m.n) + '</span>' : '';
-                    return '<div class="msg ' + cls + '">' + name + esc(m.t) + '<span class="mt">' + esc(m.time) + '</span></div>';
-                }).join('');
+                chatBody.innerHTML = '';
+                (activeConvo.messages || []).forEach(appendMsg);
                 chatBody.scrollTop = chatBody.scrollHeight;
             }
-            function sendChat() {
+            function appendMsg(m) {
+                var div = document.createElement('div');
+                div.className = 'msg ' + (m.sender_id === myId ? 'me' : 'them');
+                div.innerHTML = esc(m.body) + '<span class="mt">' + clockTime(m.created_at) + '</span>';
+                chatBody.appendChild(div);
+                chatBody.scrollTop = chatBody.scrollHeight;
+            }
+            async function sendChat() {
                 var t = chatField.value.trim();
                 if (!t || !activeConvo) return;
-                if (!store.msgs[activeConvo.id]) store.msgs[activeConvo.id] = [];
-                store.msgs[activeConvo.id].push({ f: 'me', t: t, time: nowTime() });
-                persist();
                 chatField.value = '';
-                renderChat();
-                mockReply(activeConvo);
-            }
-            function mockReply(c) {
-                clearTimeout(replyTimer);
-                var typing = document.createElement('div');
-                typing.className = 'typing';
-                typing.innerHTML = '<i></i><i></i><i></i>';
-                replyTimer = setTimeout(function () {
-                    if (!activeConvo || activeConvo.id !== c.id || dmChatEl.classList.contains('hidden')) return;
-                    chatBody.appendChild(typing);
-                    chatBody.scrollTop = chatBody.scrollHeight;
-                    setTimeout(function () {
-                        if (!activeConvo || activeConvo.id !== c.id || dmChatEl.classList.contains('hidden')) { typing.remove(); return; }
-                        typing.remove();
-                        var reply = REPLIES[Math.floor(Math.random() * REPLIES.length)];
-                        var msg = { f: 'them', t: reply, time: nowTime() };
-                        if (c.group) msg.n = c.group[Math.floor(Math.random() * c.group.length)];
-                        if (!store.msgs[c.id]) store.msgs[c.id] = [];
-                        store.msgs[c.id].push(msg);
-                        persist();
-                        renderChat();
-                    }, 1200 + Math.random() * 1200);
-                }, 900);
+                var res = await sb.from('messages').insert({
+                    conversation_id: activeConvo.id, sender_id: myId, body: t
+                }).select().single();
+                if (res.error) { toast('Could not send'); return; }
+                (activeConvo.messages = activeConvo.messages || []).push(res.data);
+                appendMsg(res.data);
             }
             document.getElementById('chatSend').addEventListener('click', sendChat);
             chatField.addEventListener('keydown', function (e) { if (e.key === 'Enter') sendChat(); });
 
+            document.getElementById('newChatBtn').addEventListener('click', async function () {
+                var u = prompt('Enter their username (without @):');
+                if (!u) return;
+                u = u.trim().replace(/^@+/, '').toLowerCase();
+                if (!u) return;
+                if (u === (myProfile.username || '').toLowerCase()) { toast('That\'s you 🙂'); return; }
+                var res = await sb.from('profiles').select('id,username,name').eq('username', u).limit(1);
+                if (res.error || !res.data.length) { toast('No user @' + u + ' found'); return; }
+                var peer = res.data[0];
+                // find existing 1:1 conversation
+                var convos = await myConversations();
+                var existing = convos.filter(function (c) {
+                    var mems = (c.conversation_members || []).map(function (m) { return m.user_id; });
+                    return mems.length === 2 && mems.indexOf(peer.id) >= 0;
+                })[0];
+                if (existing) { openChat(existing.id); return; }
+                var newId = (crypto.randomUUID ? crypto.randomUUID() : 'c-' + Date.now() + '-' + Math.random().toString(16).slice(2));
+                var cr = await sb.from('conversations').insert({ id: newId });
+                if (cr.error) { toast('Could not start chat'); return; }
+                // add self first (RLS: users can add themselves), then the peer (RLS: members can add others)
+                var m1 = await sb.from('conversation_members').insert({ conversation_id: newId, user_id: myId });
+                if (m1.error) { toast('Could not start chat'); return; }
+                var m2 = await sb.from('conversation_members').insert({ conversation_id: newId, user_id: peer.id });
+                if (m2.error) { toast('Could not start chat'); return; }
+                toast('Chat started with @' + peer.username);
+                openChat(newId);
+            });
+
+            // ---------- realtime: live feed ----------
+            function subscribeRealtime() {
+                try {
+                    sb.channel('adda-feed')
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'posts' }, function () {
+                            reloadFeed().then(renderExplore);
+                        })
+                        .subscribe();
+                    dmChannel = sb.channel('adda-dm')
+                        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, function () {
+                            if (!dmChatEl.classList.contains('hidden') || !dmListEl.classList.contains('hidden')) renderDMList();
+                            updateMsgDot();
+                        })
+                        .subscribe();
+                } catch (e) {}
+            }
+
             Array.prototype.forEach.call(document.querySelectorAll('[data-back]'), function (b) {
                 b.addEventListener('click', function () {
-                    clearTimeout(replyTimer);
+                    if (msgChannel) { sb.removeChannel(msgChannel); msgChannel = null; }
                     if (!dmChatEl.classList.contains('hidden')) {
-                        // back from a chat -> return to conversation list
                         dmChatEl.classList.add('hidden');
                         dmListEl.classList.remove('hidden');
+                        activeConvo = null;
                         renderDMList();
                     } else {
                         dmListEl.classList.add('hidden');
@@ -868,24 +1205,27 @@
                     }
                 });
             });
-            updateMsgDot();
 
             // ---------- init ----------
-            renderStories();
-            renderFeed();
-            renderExplore();
-            renderImgPick();
-            renderActivity();
-            renderProfileGrid();
-            applyProfile();
-
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function () {
-                    navigator.serviceWorker.register('sw.js').catch(function (err) {
-                        console.warn('SW registration failed:', err);
+            (async function init() {
+                try {
+                    var s = await sb.auth.getSession();
+                    if (s.data.session) {
+                        await startApp(s.data.session);
+                    } else {
+                        authScreen.classList.remove('hidden');
+                    }
+                } catch (e) {
+                    authScreen.classList.remove('hidden');
+                }
+                if ('serviceWorker' in navigator) {
+                    window.addEventListener('load', function () {
+                        navigator.serviceWorker.register('sw.js').catch(function (err) {
+                            console.warn('SW registration failed:', err);
+                        });
                     });
-                });
-            }
+                }
+            })();
         })();
     </script>
 </body>
